@@ -1,0 +1,6 @@
+{
+  "name": "Aura",
+  "description": "A mindful liquid glass hybrid journal and emotional wellness sanctuary featuring interactive liquid WebGL animations, mood tracking, rich archive, AI reflections, and wellbeing milestones.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
