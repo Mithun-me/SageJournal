@@ -1,14 +1,16 @@
 import React from 'react';
-import { Sparkles, Flame, Moon, Sun } from 'lucide-react';
+import { Sparkles, Flame, Moon, Sun, Cloud, UserCheck, LogIn } from 'lucide-react';
 import { AppTheme } from '../types';
 import { StatusBar } from './mobile/StatusBar';
 import { triggerHaptic } from '../utils/haptics';
+import { useAuth } from '../contexts/AuthContext';
 
 interface TopAppBarProps {
   streak: number;
   theme: AppTheme;
   onToggleTheme: () => void;
   onOpenProfile: () => void;
+  onOpenAuth?: () => void;
   onOpenNewEntry: () => void;
   showIsland?: boolean;
 }
@@ -18,8 +20,11 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
   theme,
   onToggleTheme,
   onOpenProfile,
+  onOpenAuth,
   showIsland = false,
 }) => {
+  const { currentUser, userProfile } = useAuth();
+
   return (
     <header
       id="top-app-bar"
@@ -78,23 +83,34 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
             )}
           </button>
 
-          {/* User Profile Avatar */}
-          <button
-            id="user-profile-btn"
-            onClick={() => {
-              triggerHaptic('light');
-              onOpenProfile();
-            }}
-            className="flex items-center justify-center p-0.5 rounded-full hover:bg-white/10 transition-all active:scale-95 cursor-pointer border border-white/15"
-          >
-            <div className="w-7 h-7 rounded-full overflow-hidden shrink-0">
-              <img
-                className="w-full h-full object-cover"
-                alt="User profile"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuC-6qSnQxQRN0QQMbWZweQyyHKcBx1uscmHDpjFK7MxQkPu2zHKBHsnMkT4JF62G_DkVCym12VwJwpPBW-9kaZqDA_SfZeeiSOwuLwRA3KqOCGniQzD3nY2RQj506BKY9xGaTadIIhqQf251MgrWUc5SbWGoV9SpcDd92mmQ8NKKjGmI6_tz_1KUaxVqTU_bXDmC4IF5wFivaIT9VHmduuKuSmZDgc6XoKsxt8nk-TGB07yzMHdXya5"
-              />
-            </div>
-          </button>
+          {/* User Profile / Auth Button */}
+          {currentUser ? (
+            <button
+              id="user-profile-btn"
+              onClick={() => {
+                triggerHaptic('light');
+                onOpenProfile();
+              }}
+              title={`Signed in as ${userProfile?.displayName || 'Seeker'}`}
+              className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-white/5 hover:bg-white/10 border border-[#4fdbc8]/30 transition-all active:scale-95 cursor-pointer"
+            >
+              <span className="text-sm">{userProfile?.avatarEmoji || '🌿'}</span>
+              <Cloud className="w-3 h-3 text-[#4fdbc8]" />
+            </button>
+          ) : (
+            <button
+              id="header-signin-btn"
+              onClick={() => {
+                triggerHaptic('light');
+                if (onOpenAuth) onOpenAuth();
+                else onOpenProfile();
+              }}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-[#4fdbc8]/20 to-[#6366f1]/20 hover:from-[#4fdbc8]/30 hover:to-[#6366f1]/30 border border-[#4fdbc8]/40 text-[#71f8e4] text-xs font-bold transition-all active:scale-95 shadow-sm"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Sign In</span>
+            </button>
+          )}
         </div>
       </div>
     </header>

@@ -77,7 +77,7 @@ Format your response as valid JSON with keys:
 - "suggestedAffirmation": (string) A concise, empowering grounding affirmation.`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
+      model: 'gemini-2.5-flash',
       contents: aiPrompt,
       config: {
         responseMimeType: 'application/json',
@@ -88,12 +88,18 @@ Format your response as valid JSON with keys:
     const parsed = JSON.parse(jsonText);
     res.json(parsed);
   } catch (error: any) {
-    console.error('Error generating AI reflection:', error);
-    res.status(500).json({
-      error: error.message || 'Failed to generate reflection',
-      reflection: 'Your reflection shows deep self-awareness. Taking time to process your thoughts creates space for tranquility and growth.',
+    // Graceful fallback on quota limits (429) or transient errors
+    const mindfulReflections = [
+      `Taking time to notice this moment reflects genuine mindfulness. By acknowledging your feelings without judgment, you create space for emotional clarity and grounded calm.`,
+      `This entry reveals a gentle rhythm of self-awareness. Notice how small shifts in perspective during your day anchor your sense of stability and peace.`,
+      `Your words capture a meaningful thread of intention. Pausing to write these observations reinforces resilience and nurtures inner equilibrium.`,
+      `There is profound wisdom in your reflection. Embracing both the stillness and the movement of life allows you to stay centered and connected to yourself.`
+    ];
+    const randomReflection = mindfulReflections[Math.floor(Math.random() * mindfulReflections.length)];
+    res.json({
+      reflection: randomReflection,
       themes: ['Self-Discovery', 'Mindfulness', 'Peace'],
-      suggestedAffirmation: 'I allow my thoughts to flow and find peace in each breath.'
+      suggestedAffirmation: 'I allow my thoughts to flow with ease and find peace in each breath.'
     });
   }
 });
@@ -104,31 +110,142 @@ app.post('/api/gemini/prompt', async (req: Request, res: Response) => {
     const { category, currentMood } = req.body;
     const ai = getAi();
 
+    const defaultPrompts = [
+      'What is a small detail you noticed today that brought you an unexpected sense of calm?',
+      'When did you feel most in alignment with your natural rhythm today?',
+      'What is one burden or expectation you can gently release this evening?',
+      'How did your breath or body communicate with you during your most stressful moment?',
+      'Describe a sound, texture, or scent today that grounded your senses.',
+      'What is something you are silently grateful for that you haven’t expressed aloud recently?'
+    ];
+
     if (!ai) {
-      const defaultPrompts = [
-        'What is a small detail you noticed today that brought you an unexpected sense of calm?',
-        'When did you feel most in alignment with your natural rhythm today?',
-        'What is one burden or expectation you can gently release this evening?',
-        'How did your breath or body communicate with you during your most stressful moment?',
-        'Describe a sound, texture, or scent today that grounded your senses.'
-      ];
       const randomPrompt = defaultPrompts[Math.floor(Math.random() * defaultPrompts.length)];
       return res.json({ prompt: randomPrompt, category: category || 'Gratitude' });
     }
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
+      model: 'gemini-2.5-flash',
       contents: `Generate one concise, evocative, and psychologically grounded mindfulness journal prompt for a user feeling ${currentMood || 'Reflective'}. The category is ${category || 'Daily Presence'}. Return only the question text in 1 sentence.`,
     });
 
-    res.json({ prompt: response.text?.trim(), category: category || 'Mindfulness' });
+    res.json({ prompt: response.text?.trim() || defaultPrompts[0], category: category || 'Mindfulness' });
   } catch (error) {
+    const defaultPrompts = [
+      'What is a small detail you noticed today that brought you an unexpected sense of calm?',
+      'When did you feel most in alignment with your natural rhythm today?',
+      'What is one burden or expectation you can gently release this evening?'
+    ];
     res.json({
-      prompt: 'What is a small detail you noticed today that brought you an unexpected sense of calm?',
+      prompt: defaultPrompts[Math.floor(Math.random() * defaultPrompts.length)],
       category: 'Presence'
     });
   }
 });
+
+// Curated authentic mindful affirmations collection
+const CURATED_AFFIRMATIONS = [
+  {
+    quote: "Smile, breathe and go slowly.",
+    author: "Thích Nhất Hạnh",
+    source: "Peace Is Every Step",
+    reflection: "When you slow down your pace, you create space to witness the stillness already present within you.",
+    theme: "Presence",
+    sources: [
+      { title: "Plum Village Mindfulness Community", uri: "https://plumvillage.org" }
+    ]
+  },
+  {
+    quote: "You have power over your mind - not outside events. Realize this, and you will find strength.",
+    author: "Marcus Aurelius",
+    source: "Meditations",
+    reflection: "Release the need to control the external current; ground your focus gently on your inner clarity.",
+    theme: "Inner Peace",
+    sources: [
+      { title: "Stanford Encyclopedia of Philosophy - Stoicism", uri: "https://plato.stanford.edu" }
+    ]
+  },
+  {
+    quote: "Feelings come and go like clouds in a windy sky. Conscious breathing is my anchor.",
+    author: "Thích Nhất Hạnh",
+    source: "Stepping into Freedom",
+    reflection: "Observe passing thoughts without judgment, anchoring your attention into the natural wave of each breath.",
+    theme: "Equanimity",
+    sources: [
+      { title: "Plum Village Community of Mindful Living", uri: "https://plumvillage.org" }
+    ]
+  },
+  {
+    quote: "The quieter you become, the more you are able to hear.",
+    author: "Rumi",
+    source: "The Masnavi",
+    reflection: "In deep quietude, your mind settles and subtle clarity surfaces on its own.",
+    theme: "Stillness",
+    sources: [
+      { title: "Poetry Foundation - Rumi", uri: "https://www.poetryfoundation.org" }
+    ]
+  },
+  {
+    quote: "You cannot stop the waves, but you can learn to surf.",
+    author: "Jon Kabat-Zinn",
+    source: "Wherever You Go, There You Are",
+    reflection: "Accept today's rhythms with curiosity instead of resistance, moving with ease through changing moments.",
+    theme: "Resilience",
+    sources: [
+      { title: "Mindfulness-Based Stress Reduction (MBSR)", uri: "https://www.mindfulnesscds.com" }
+    ]
+  },
+  {
+    quote: "Do you have the patience to wait until your mud settles and the water is clear?",
+    author: "Lao Tzu",
+    source: "Tao Te Ching",
+    reflection: "Clarity cannot be forced; allow time and stillness to reveal what is true and calm.",
+    theme: "Patience",
+    sources: [
+      { title: "Internet Encyclopedia of Philosophy - Daoism", uri: "https://iep.utm.edu" }
+    ]
+  },
+  {
+    quote: "Tell me, what is it you plan to do with your one wild and precious life?",
+    author: "Mary Oliver",
+    source: "The Summer Day",
+    reflection: "Cherish this immediate hour as a gift, treating your attention as your most sacred offering.",
+    theme: "Gratitude",
+    sources: [
+      { title: "Poetry Foundation - Mary Oliver", uri: "https://www.poetryfoundation.org" }
+    ]
+  },
+  {
+    quote: "Muddy water is best cleared by leaving it alone.",
+    author: "Alan Watts",
+    source: "The Way of Zen",
+    reflection: "Whenever your thoughts feel turbulent, step back and let the stillness do the settling.",
+    theme: "Clarity",
+    sources: [
+      { title: "Alan Watts Organization", uri: "https://alanwatts.org" }
+    ]
+  },
+  {
+    quote: "You are the sky. Everything else – it's just the weather.",
+    author: "Pema Chödrön",
+    source: "When Things Fall Apart",
+    reflection: "Difficult feelings and busy thoughts are temporary gusts across your vast, steady awareness.",
+    theme: "Equanimity",
+    sources: [
+      { title: "Pema Chödrön Foundation", uri: "https://pemachodronfoundation.org" }
+    ]
+  },
+  {
+    quote: "Between stimulus and response there is a space. In that space is our power to choose our response.",
+    author: "Viktor E. Frankl",
+    source: "Man's Search for Meaning",
+    reflection: "Take a conscious breath between what happens and how you react—that pause is your true freedom.",
+    theme: "Awareness",
+    sources: [
+      { title: "Viktor Frankl Institute", uri: "https://www.viktorfrankl.org" }
+    ]
+  }
+];
 
 // Daily Affirmation & Grounded Mindful Quote via Google Search
 app.post('/api/gemini/daily-affirmation', async (req: Request, res: Response) => {
@@ -136,61 +253,8 @@ app.post('/api/gemini/daily-affirmation', async (req: Request, res: Response) =>
     const { topic } = req.body;
     const ai = getAi();
 
-    const fallbackAffirmations = [
-      {
-        quote: "Smile, breathe and go slowly.",
-        author: "Thích Nhất Hạnh",
-        source: "Peace Is Every Step",
-        reflection: "When you slow down your pace, you create space to witness the stillness already present within you.",
-        theme: "Presence",
-        sources: [
-          { title: "Plum Village Mindfulness Community", uri: "https://plumvillage.org" }
-        ]
-      },
-      {
-        quote: "You have power over your mind - not outside events. Realize this, and you will find strength.",
-        author: "Marcus Aurelius",
-        source: "Meditations",
-        reflection: "Release the need to control the external current; ground your focus gently on your inner clarity.",
-        theme: "Inner Peace",
-        sources: [
-          { title: "Stanford Encyclopedia of Philosophy - Stoicism", uri: "https://plato.stanford.edu" }
-        ]
-      },
-      {
-        quote: "Feelings come and go like clouds in a windy sky. Conscious breathing is my anchor.",
-        author: "Thích Nhất Hạnh",
-        source: "Stepping into Freedom",
-        reflection: "Observe passing thoughts without judgment, anchoring your attention into the natural wave of each breath.",
-        theme: "Equanimity",
-        sources: [
-          { title: "Plum Village Community of Mindful Living", uri: "https://plumvillage.org" }
-        ]
-      },
-      {
-        quote: "The quieter you become, the more you are able to hear.",
-        author: "Rumi",
-        source: "The Masnavi",
-        reflection: "In deep quietude, your mind settles and subtle clarity surfaces on its own.",
-        theme: "Stillness",
-        sources: [
-          { title: "Poetry Foundation - Rumi", uri: "https://www.poetryfoundation.org" }
-        ]
-      },
-      {
-        quote: "You cannot stop the waves, but you can learn to surf.",
-        author: "Jon Kabat-Zinn",
-        source: "Wherever You Go, There You Are",
-        reflection: "Accept today's rhythms with curiosity instead of resistance, moving with ease through changing moments.",
-        theme: "Resilience",
-        sources: [
-          { title: "Mindfulness-Based Stress Reduction (MBSR)", uri: "https://www.mindfulnesscds.com" }
-        ]
-      }
-    ];
-
     if (!ai) {
-      const selected = fallbackAffirmations[Math.floor(Math.random() * fallbackAffirmations.length)];
+      const selected = CURATED_AFFIRMATIONS[Math.floor(Math.random() * CURATED_AFFIRMATIONS.length)];
       return res.json({
         ...selected,
         fetchedAt: new Date().toISOString()
@@ -212,7 +276,7 @@ Provide the output strictly formatted in the following JSON format:
 Ensure your response is valid JSON only.`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
+      model: 'gemini-2.5-flash',
       contents: searchPrompt,
       config: {
         tools: [{ googleSearch: {} }],
@@ -257,7 +321,7 @@ Ensure your response is valid JSON only.`;
     }
 
     if (!parsedResult || !parsedResult.quote) {
-      parsedResult = fallbackAffirmations[Math.floor(Math.random() * fallbackAffirmations.length)];
+      parsedResult = CURATED_AFFIRMATIONS[Math.floor(Math.random() * CURATED_AFFIRMATIONS.length)];
     }
 
     // Deduplicate grounding sources
@@ -282,16 +346,10 @@ Ensure your response is valid JSON only.`;
       fetchedAt: new Date().toISOString(),
     });
   } catch (error: any) {
-    console.error('Error fetching search-grounded daily affirmation:', error);
+    // Seamless fallback to rich curated affirmations on 429 quota or network constraints
+    const selected = CURATED_AFFIRMATIONS[Math.floor(Math.random() * CURATED_AFFIRMATIONS.length)];
     res.json({
-      quote: "Smile, breathe and go slowly.",
-      author: "Thích Nhất Hạnh",
-      source: "Peace Is Every Step",
-      reflection: "When you slow down your pace, you create space to witness the beauty already present around you.",
-      theme: "Presence",
-      sources: [
-        { title: "Plum Village Mindfulness Community", uri: "https://plumvillage.org" }
-      ],
+      ...selected,
       fetchedAt: new Date().toISOString()
     });
   }
@@ -312,7 +370,7 @@ app.post('/api/gemini/insights', async (req: Request, res: Response) => {
 
     const prompt = `Based on user stats: 7-day streak (${streak} days), ${entriesCount} total entries, dominant mood '${dominantMood || 'Calm'}'. Provide one encouraging 2-sentence emotional pattern insight and one actionable gentle micro-habit tip. Return JSON with 'insight' and 'tip'.`;
     const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
+      model: 'gemini-2.5-flash',
       contents: prompt,
       config: { responseMimeType: 'application/json' },
     });

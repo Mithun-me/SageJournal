@@ -1,6 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { JournalEntry, MoodType } from '../../types';
-import { X, MoreHorizontal, Sparkles, Image as ImageIcon, MapPin, CheckCircle, RefreshCw, Mic, Volume2 } from 'lucide-react';
+import {
+  X,
+  Sparkles,
+  Image as ImageIcon,
+  MapPin,
+  CheckCircle,
+  RefreshCw,
+  Mic,
+  MicOff,
+  Volume2,
+  Radio,
+  Trash2,
+} from 'lucide-react';
 import { triggerHaptic } from '../../utils/haptics';
 
 interface NewEntryModalProps {
@@ -27,16 +39,23 @@ export const NewEntryModal: React.FC<NewEntryModalProps> = ({
     initialPrompt || 'What is a small detail you noticed today that brought you an unexpected sense of calm?'
   );
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (initialPrompt) setSelectedPrompt(initialPrompt);
     if (initialContent) setContent(initialContent);
   }, [initialPrompt, initialContent, isOpen]);
+
   const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
   const [location, setLocation] = useState<string>('Home Sanctuary');
-  const [isRecording, setIsRecording] = useState(false);
   const [hasAudio, setHasAudio] = useState(false);
   const [audioDuration, setAudioDuration] = useState('1:30');
+
+  // Speech-to-Text Transcription State
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [interimTranscript, setInterimTranscript] = useState('');
+  const [speechError, setSpeechError] = useState<string | null>(null);
+  const recognitionRef = useRef<any>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const [isGeneratingReflection, setIsGeneratingReflection] = useState(false);
   const [generatedReflection, setGeneratedReflection] = useState<{
@@ -44,6 +63,118 @@ export const NewEntryModal: React.FC<NewEntryModalProps> = ({
     themes: string[];
     suggestedAffirmation: string;
   } | null>(null);
+
+  // Stop transcription on modal close or unmount
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {
+          // ignore
+        }
+      }
+    };
+  }, []);
+
+  const startTranscription = () => {
+    triggerHaptic('medium');
+    setSpeechError(null);
+
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      setSpeechError('Speech recognition is not supported in this browser.');
+      return;
+    }
+
+    try {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {}
+      }
+
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = () => {
+        setIsTranscribing(true);
+        setSpeechError(null);
+      };
+
+      recognition.onresult = (event: any) => {
+        let finalChunk = '';
+        let interimChunk = '';
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          const transcriptPiece = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalChunk += transcriptPiece;
+          } else {
+            interimChunk += transcriptPiece;
+          }
+        }
+
+        if (finalChunk) {
+          setContent((prev) => {
+            const trimmed = prev.trimEnd();
+            const addition = finalChunk.trim();
+            if (!trimmed) return addition;
+            return `${trimmed} ${addition}`;
+          });
+          setHasAudio(true);
+        }
+
+        setInterimTranscript(interimChunk);
+      };
+
+      recognition.onerror = (event: any) => {
+        if (event.error === 'not-allowed') {
+          setSpeechError('Microphone access was denied. Please allow microphone permissions in your browser.');
+        } else if (event.error === 'no-speech') {
+          // Soft timeout, keep listening
+        } else {
+          setSpeechError(`Speech error: ${event.error || 'Unable to capture speech'}`);
+        }
+        setIsTranscribing(false);
+      };
+
+      recognition.onend = () => {
+        setIsTranscribing(false);
+        setInterimTranscript('');
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (err: any) {
+      console.error('Speech recognition start error:', err);
+      setSpeechError(err.message || 'Could not start microphone');
+      setIsTranscribing(false);
+    }
+  };
+
+  const stopTranscription = () => {
+    triggerHaptic('light');
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {}
+    }
+    setIsTranscribing(false);
+    setInterimTranscript('');
+  };
+
+  const toggleTranscription = () => {
+    if (isTranscribing) {
+      stopTranscription();
+    } else {
+      startTranscription();
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -203,22 +334,78 @@ export const NewEntryModal: React.FC<NewEntryModalProps> = ({
         </section>
 
         {/* Journal Main Input Container */}
-        <section className="bg-[#0a0c1a] border border-white/[0.08] rounded-xl overflow-hidden flex flex-col flex-1 min-h-[200px]">
+        <section className="bg-[#0a0c1a] border border-white/[0.08] rounded-xl overflow-hidden flex flex-col flex-1 min-h-[220px]">
+          {/* Active Voice Dictation Banner */}
+          {isTranscribing && (
+            <div className="bg-gradient-to-r from-[#4fdbc8]/20 via-[#4fdbc8]/10 to-[#8083ff]/15 px-3.5 py-2 border-b border-[#4fdbc8]/30 flex items-center justify-between animate-fadeIn">
+              <div className="flex items-center gap-2">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#4fdbc8] opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#4fdbc8]"></span>
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-semibold text-[#71f8e4]">Listening & Transcribing...</span>
+                  {/* Visual Soundwave Bars */}
+                  <div className="flex items-center gap-0.5 ml-1">
+                    <span className="w-1 h-3 bg-[#4fdbc8] rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                    <span className="w-1 h-4 bg-[#4fdbc8] rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                    <span className="w-1 h-2 bg-[#4fdbc8] rounded-full animate-bounce [animation-delay:-0.45s]"></span>
+                    <span className="w-1 h-5 bg-[#4fdbc8] rounded-full animate-bounce [animation-delay:0s]"></span>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                id="stop-dictation-btn"
+                onClick={stopTranscription}
+                className="px-2 py-0.5 rounded-lg bg-[#4fdbc8]/20 hover:bg-[#4fdbc8]/30 text-[#71f8e4] text-[11px] font-bold border border-[#4fdbc8]/40 transition-all flex items-center gap-1"
+              >
+                <MicOff className="w-3 h-3" />
+                <span>Done</span>
+              </button>
+            </div>
+          )}
+
+          {/* Speech Error Banner */}
+          {speechError && (
+            <div className="bg-red-500/15 border-b border-red-500/30 px-3.5 py-1.5 flex items-center justify-between text-[11px] text-red-200">
+              <span>{speechError}</span>
+              <button onClick={() => setSpeechError(null)} className="hover:text-white font-bold ml-2">✕</button>
+            </div>
+          )}
+
           <div className="p-4 flex-1 flex flex-col">
             <input
               type="text"
+              id="entry-title-input"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Title (Optional)"
               className="w-full bg-transparent border-none text-base font-bold text-white placeholder-[#908fa0] focus:outline-none p-0 mb-2 font-['Manrope']"
             />
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Start writing here... Pour your feelings, reflections, and thoughts onto the page."
-              rows={5}
-              className="w-full flex-1 bg-transparent border-none text-xs text-[#e1e1f6] placeholder-[#908fa0] focus:outline-none resize-none p-0 leading-relaxed font-['Be_Vietnam_Pro']"
-            />
+            <div className="relative flex-1 flex flex-col">
+              <textarea
+                ref={textareaRef}
+                id="entry-content-textarea"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder={
+                  isTranscribing
+                    ? 'Speak naturally... your voice will be transcribed here in real-time.'
+                    : 'Start writing or tap the microphone below to transcribe your thoughts directly...'
+                }
+                rows={5}
+                className="w-full flex-1 bg-transparent border-none text-xs text-[#e1e1f6] placeholder-[#908fa0] focus:outline-none resize-none p-0 leading-relaxed font-['Be_Vietnam_Pro']"
+              />
+
+              {/* Interim Real-time Speech Preview */}
+              {isTranscribing && interimTranscript && (
+                <div className="mt-1 text-xs text-[#71f8e4]/80 italic bg-white/[0.03] p-1.5 rounded-lg border border-[#4fdbc8]/20 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#4fdbc8] animate-ping shrink-0" />
+                  <span className="truncate">"{interimTranscript}"</span>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Attached Image Preview */}
@@ -242,7 +429,7 @@ export const NewEntryModal: React.FC<NewEntryModalProps> = ({
             <div className="mx-4 mb-2.5 p-2 rounded-lg bg-white/5 border border-white/10 flex items-center justify-between text-xs">
               <div className="flex items-center gap-1.5 text-[#4fdbc8]">
                 <Volume2 className="w-3.5 h-3.5" />
-                <span className="text-xs">Voice Note ({audioDuration})</span>
+                <span className="text-xs">Voice Dictated Entry</span>
               </div>
               <button
                 onClick={() => setHasAudio(false)}
@@ -255,7 +442,32 @@ export const NewEntryModal: React.FC<NewEntryModalProps> = ({
 
           {/* Toolbar */}
           <div className="border-t border-white/[0.08] px-3.5 py-2 bg-[#0e1022] flex items-center justify-between">
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
+              {/* Voice Transcription Mic Button */}
+              <button
+                type="button"
+                id="voice-dictate-btn"
+                onClick={toggleTranscription}
+                title={isTranscribing ? "Stop Voice Transcription" : "Transcribe Speech with Microphone"}
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                  isTranscribing
+                    ? 'bg-red-500/20 text-red-300 border border-red-500/40 animate-pulse shadow-[0_0_12px_rgba(239,68,68,0.3)]'
+                    : 'bg-[#4fdbc8]/15 hover:bg-[#4fdbc8]/25 text-[#71f8e4] border border-[#4fdbc8]/30 active:scale-95'
+                }`}
+              >
+                {isTranscribing ? (
+                  <>
+                    <MicOff className="w-3.5 h-3.5 text-red-400" />
+                    <span>Listening...</span>
+                  </>
+                ) : (
+                  <>
+                    <Mic className="w-3.5 h-3.5 text-[#4fdbc8]" />
+                    <span>Transcribe Voice</span>
+                  </>
+                )}
+              </button>
+
               <div className="relative group">
                 <button
                   type="button"
@@ -292,30 +504,18 @@ export const NewEntryModal: React.FC<NewEntryModalProps> = ({
               >
                 <MapPin className="w-4 h-4" />
               </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  triggerHaptic('medium');
-                  setIsRecording(true);
-                  setTimeout(() => {
-                    setIsRecording(false);
-                    setHasAudio(true);
-                    triggerHaptic('success');
-                  }, 1500);
-                }}
-                title="Record Voice Note"
-                className={`p-1.5 rounded-lg ${
-                  isRecording ? 'text-red-400 bg-red-500/20 animate-pulse' : 'text-[#908fa0] hover:text-[#4fdbc8] hover:bg-white/5'
-                }`}
-              >
-                <Mic className="w-4 h-4" />
-              </button>
             </div>
 
-            <span className="text-[11px] text-[#908fa0]">
-              {location}
-            </span>
+            <div className="flex items-center gap-2">
+              {content.length > 0 && (
+                <span className="text-[10px] text-[#908fa0]">
+                  {content.trim().split(/\s+/).filter(Boolean).length} words
+                </span>
+              )}
+              <span className="text-[11px] text-[#908fa0]">
+                {location}
+              </span>
+            </div>
           </div>
         </section>
 

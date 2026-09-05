@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { JournalEntry, TabType, AppTheme, MoodType } from './types';
 import { INITIAL_ENTRIES, INITIAL_MILESTONES, INITIAL_WEEK_TRENDS } from './data/initialData';
 import { LiquidShaderCanvas } from './components/LiquidShaderCanvas';
@@ -12,8 +12,19 @@ import { SettingsScreen } from './components/screens/SettingsScreen';
 import { NewEntryModal } from './components/modals/NewEntryModal';
 import { EntryDetailModal } from './components/modals/EntryDetailModal';
 import { ProfileModal } from './components/modals/ProfileModal';
+import { AuthModal } from './components/modals/AuthModal';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import {
+  subscribeToUserEntries,
+  saveUserEntry,
+  deleteUserEntry,
+  updateUserEntry,
+  seedLocalEntriesToFirestore,
+} from './services/dbService';
 
-export default function App() {
+function AppContent() {
+  const { currentUser, userProfile, updateProfileData } = useAuth();
+
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [theme, setTheme] = useState<AppTheme>('liquid-glass');
   const [entries, setEntries] = useState<JournalEntry[]>(() => {
@@ -24,6 +35,7 @@ export default function App() {
       return INITIAL_ENTRIES;
     }
   });
+
   const [totalPoints, setTotalPoints] = useState<number>(() => {
     try {
       const saved = localStorage.getItem('aura_points');
@@ -32,6 +44,7 @@ export default function App() {
       return 2450;
     }
   });
+
   const [streak, setStreak] = useState<number>(7);
   const [selectedMood, setSelectedMood] = useState<MoodType | null>('Calm');
 
@@ -44,7 +57,61 @@ export default function App() {
   const [initialPrompt, setInitialPrompt] = useState<string | undefined>(undefined);
   const [initialContent, setInitialContent] = useState<string | undefined>(undefined);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [viewingEntry, setViewingEntry] = useState<JournalEntry | null>(null);
+
+  // Track if Firestore has been seeded for current session
+  const hasSeededRef = useRef(false);
+
+  // Subscribe to Firestore Entries when user is logged in
+  useEffect(() => {
+    if (!currentUser) {
+      hasSeededRef.current = false;
+      return;
+    }
+
+    const unsubscribe = subscribeToUserEntries(currentUser.uid, (cloudEntries) => {
+      if (cloudEntries && cloudEntries.length > 0) {
+        setEntries(cloudEntries);
+      } else if (!hasSeededRef.current) {
+        // Seed initial local entries to user's new Firestore database so no entries are lost
+        hasSeededRef.current = true;
+        seedLocalEntriesToFirestore(currentUser.uid, entries);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [currentUser]);
+
+  // Sync profile metrics from Firestore
+  useEffect(() => {
+    if (userProfile) {
+      if (typeof userProfile.totalPoints === 'number') {
+        setTotalPoints(userProfile.totalPoints);
+      }
+      if (typeof userProfile.streak === 'number') {
+        setStreak(userProfile.streak);
+      }
+    }
+  }, [userProfile]);
+
+  // Cache entries in localStorage as fallback
+  useEffect(() => {
+    try {
+      localStorage.setItem('aura_entries_v1', JSON.stringify(entries));
+    } catch (e) {
+      console.warn('Storage error:', e);
+    }
+  }, [entries]);
+
+  // Cache points
+  useEffect(() => {
+    try {
+      localStorage.setItem('aura_points', totalPoints.toString());
+    } catch (e) {
+      console.warn('Storage error:', e);
+    }
+  }, [totalPoints]);
 
   const handleOpenNewEntryWithQuote = (quote: string, author: string) => {
     setInitialPrompt(`How does this quote resonate with your current moment?`);
@@ -58,50 +125,65 @@ export default function App() {
     setIsNewEntryOpen(true);
   };
 
-  // Save entries to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem('aura_entries_v1', JSON.stringify(entries));
-    } catch (e) {
-      console.warn('Storage error:', e);
-    }
-  }, [entries]);
-
-  // Save points
-  useEffect(() => {
-    try {
-      localStorage.setItem('aura_points', totalPoints.toString());
-    } catch (e) {
-      console.warn('Storage error:', e);
-    }
-  }, [totalPoints]);
-
   const handleToggleTheme = () => {
     setTheme((prev) => (prev === 'liquid-glass' ? 'deep-sea' : 'liquid-glass'));
   };
 
-  const handleSaveEntry = (entryData: Omit<JournalEntry, 'id' | 'timestamp'>) => {
+  const handleSaveEntry = async (entryData: Omit<JournalEntry, 'id' | 'timestamp'>) => {
     const newEntry: JournalEntry = {
       ...entryData,
       id: `entry-${Date.now()}`,
       timestamp: Date.now(),
     };
 
+    // Optimistic UI update
     setEntries((prev) => [newEntry, ...prev]);
-    setTotalPoints((prev) => prev + 50);
+    const updatedPoints = totalPoints + 50;
+    setTotalPoints(updatedPoints);
+
+    // Save to Firestore if user is authenticated
+    if (currentUser) {
+      try {
+        await saveUserEntry(currentUser.uid, newEntry);
+        await updateProfileData({ totalPoints: updatedPoints });
+      } catch (err) {
+        console.warn('Failed to sync new entry to Firestore:', err);
+      }
+    }
   };
 
-  const handleToggleFavorite = (id: string, e: React.MouseEvent) => {
+  const handleToggleFavorite = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    const entry = entries.find((item) => item.id === id);
+    const newFavoriteState = entry ? !entry.isFavorite : true;
+
+    // Optimistic update
     setEntries((prev) =>
       prev.map((item) =>
-        item.id === id ? { ...item, isFavorite: !item.isFavorite } : item
+        item.id === id ? { ...item, isFavorite: newFavoriteState } : item
       )
     );
+
+    // Firestore update
+    if (currentUser) {
+      try {
+        await updateUserEntry(currentUser.uid, id, { isFavorite: newFavoriteState });
+      } catch (err) {
+        console.warn('Failed to sync favorite to Firestore:', err);
+      }
+    }
   };
 
-  const handleDeleteEntry = (id: string) => {
+  const handleDeleteEntry = async (id: string) => {
     setEntries((prev) => prev.filter((item) => item.id !== id));
+
+    if (currentUser) {
+      try {
+        await deleteUserEntry(currentUser.uid, id);
+      } catch (err) {
+        console.warn('Failed to delete entry from Firestore:', err);
+      }
+    }
   };
 
   const handleResetData = () => {
@@ -121,12 +203,13 @@ export default function App() {
         intensity={shaderIntensity}
       />
 
-      {/* Top App Bar Header */}
+      {/* Top App Bar Header with Auth Status */}
       <TopAppBar
         streak={streak}
         theme={theme}
         onToggleTheme={handleToggleTheme}
         onOpenProfile={() => setIsProfileOpen(true)}
+        onOpenAuth={() => setIsAuthOpen(true)}
         onOpenNewEntry={handleOpenStandardNewEntry}
       />
 
@@ -138,7 +221,11 @@ export default function App() {
             selectedMood={selectedMood}
             onSelectMood={(m) => {
               setSelectedMood(m);
-              setTotalPoints((p) => p + 10);
+              const newPoints = totalPoints + 10;
+              setTotalPoints(newPoints);
+              if (currentUser) {
+                updateProfileData({ totalPoints: newPoints });
+              }
             }}
             onOpenNewEntry={handleOpenStandardNewEntry}
             onReflectWithQuote={handleOpenNewEntryWithQuote}
@@ -166,6 +253,7 @@ export default function App() {
             streak={streak}
             milestones={INITIAL_MILESTONES}
             weekTrends={INITIAL_WEEK_TRENDS}
+            entries={entries}
           />
         )}
 
@@ -179,6 +267,7 @@ export default function App() {
             onSetShaderSpeed={setShaderSpeed}
             shaderIntensity={shaderIntensity}
             onSetShaderIntensity={setShaderIntensity}
+            onOpenAuth={() => setIsAuthOpen(true)}
           />
         )}
       </main>
@@ -214,7 +303,21 @@ export default function App() {
         totalPoints={totalPoints}
         entries={entries}
         onOpenSettings={() => setActiveTab('settings')}
+        onOpenAuth={() => setIsAuthOpen(true)}
+      />
+
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
       />
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }

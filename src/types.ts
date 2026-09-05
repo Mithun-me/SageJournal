@@ -63,3 +63,15 @@ export interface DailyAffirmation {
   sources?: GroundingSource[];
   fetchedAt?: string;
 }
+
+export interface UserProfile {
+  userId: string;
+  displayName: string; // Non-PII chosen handle or mindful nickname
+  avatarEmoji: string; // Non-PII avatar emoji (e.g., 🌿, 🪷, 🌊, 🌙)
+  totalPoints: number;
+  streak: number;
+  lastActiveDate: string;
+  theme?: AppTheme;
+  createdAt?: string;
+  updatedAt?: string;
+}
