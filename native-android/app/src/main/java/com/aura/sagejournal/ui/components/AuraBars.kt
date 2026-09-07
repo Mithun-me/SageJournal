@@ -54,6 +54,7 @@ fun AuraTopBar(
     deepSea: Boolean,
     onToggleTheme: () -> Unit,
     onOpenProfile: () -> Unit,
+    onNewEntry: () -> Unit,
     onSignIn: () -> Unit,
 ) {
     Row(
@@ -134,6 +135,23 @@ fun AuraTopBar(
                 )
             }
 
+            // Was a bottom-right FAB; it covered a tab, then covered the
+            // "View All" link and the insight card. Nothing overlaps up here.
+            Box(
+                Modifier
+                    .size(30.dp)
+                    .clip(AuraShapes.Pill)
+                    .background(
+                        Brush.linearGradient(
+                            listOf(AuraColors.GradientStart, AuraColors.GradientEnd)
+                        )
+                    )
+                    .clickable(onClick = onNewEntry),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.Filled.Add, "New entry", Modifier.size(18.dp), Color.White)
+            }
+
             Row(
                 Modifier
                     .clip(AuraShapes.Pill)
@@ -189,23 +207,5 @@ fun AuraBottomBar(selected: AuraTab, onSelect: (AuraTab) -> Unit) {
                 )
             }
         }
-    }
-}
-
-/** Sits clear above the tab bar, matching the web fix rather than the bug. */
-@Composable
-fun NewEntryFab(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Box(
-        modifier
-            .size(52.dp)
-            .clip(AuraShapes.Pill)
-            .background(
-                Brush.linearGradient(listOf(AuraColors.GradientStart, AuraColors.GradientEnd))
-            )
-            .border(1.dp, Color.White.copy(alpha = 0.2f), AuraShapes.Pill)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(Icons.Filled.Add, "New entry", Modifier.size(26.dp), Color.White)
     }
 }

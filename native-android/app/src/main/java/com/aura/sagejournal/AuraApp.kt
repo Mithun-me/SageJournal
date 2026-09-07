@@ -19,12 +19,13 @@ import androidx.compose.ui.unit.dp
 import com.aura.sagejournal.dev.DevHud
 import com.aura.sagejournal.domain.Mood
 import com.aura.sagejournal.domain.SeedData
+import com.aura.sagejournal.domain.TrendsSeed
 import com.aura.sagejournal.ui.components.AuraBottomBar
 import com.aura.sagejournal.ui.components.AuraTab
 import com.aura.sagejournal.ui.components.AuraTopBar
 import com.aura.sagejournal.ui.components.LiquidBackground
-import com.aura.sagejournal.ui.components.NewEntryFab
 import com.aura.sagejournal.ui.screens.HomeScreen
+import com.aura.sagejournal.ui.screens.InsightsScreen
 import com.aura.sagejournal.ui.screens.NotPortedYet
 import com.aura.sagejournal.ui.screens.SettingsPlaceholder
 import com.aura.sagejournal.ui.shader.ShaderPalette
@@ -46,6 +47,7 @@ fun AuraApp(refreshHz: Float) {
                 deepSea = deepSea,
                 onToggleTheme = { deepSea = !deepSea },
                 onOpenProfile = {},
+                onNewEntry = {},
                 onSignIn = {},
             )
 
@@ -89,20 +91,20 @@ fun AuraApp(refreshHz: Float) {
                                 "chimes should ship as audio assets, not runtime synthesis.",
                         )
 
-                        AuraTab.Insights -> NotPortedYet(
-                            "Insights", 625,
-                            "The largest screen. Recharts needs replacing with Vico, " +
-                                "and the custom glass tooltip rebuilt.",
+                        AuraTab.Insights -> InsightsScreen(
+                            totalPoints = 2450,
+                            streak = 7,
+                            week = TrendsSeed.week,
+                            milestones = TrendsSeed.milestones,
+                            aiInsight = "Clarity climbs on days you log before noon — " +
+                                "Friday and Sunday both started with a morning entry. " +
+                                "Wednesday was your only day without one.",
                         )
 
                         AuraTab.Settings -> SettingsPlaceholder(showHud) { showHud = !showHud }
                     }
                 }
 
-                NewEntryFab(
-                    onClick = {},
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
-                )
 
                 if (showHud) {
                     DevHud(
