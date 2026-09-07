@@ -9,20 +9,25 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.aura.sagejournal.data.AuraSettings
+import com.aura.sagejournal.data.EntryStore
+import com.aura.sagejournal.data.SettingsStore
 import com.aura.sagejournal.dev.DevHud
-import com.aura.sagejournal.domain.Mood
 import com.aura.sagejournal.domain.BloomSeed
+import com.aura.sagejournal.domain.Mood
 import com.aura.sagejournal.domain.SeedData
 import com.aura.sagejournal.domain.TrendsSeed
 import com.aura.sagejournal.ui.components.AuraNavBar
@@ -39,23 +44,30 @@ import com.aura.sagejournal.ui.shader.ShaderPalette
 import com.aura.sagejournal.ui.theme.AuraColors
 import com.aura.sagejournal.ui.theme.AuraDims
 import com.aura.sagejournal.ui.theme.AuraMaterialTheme
+import kotlinx.coroutines.launch
 
-private val motionNames = listOf("Gentle" to 0.5f, "Balanced" to 1.0f, "Dynamic" to 1.6f)
+private val motionLevels = listOf("Gentle" to 0.5f, "Balanced" to 1.0f, "Dynamic" to 1.6f)
 
 @Composable
 fun AuraApp(refreshHz: Float) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val entryStore = remember { EntryStore(context) }
+    val settingsStore = remember { SettingsStore(context) }
+
+    LaunchedEffect(Unit) { entryStore.seedIfEmpty() }
+
+    val entries by entryStore.entries.collectAsStateWithLifecycle(emptyList())
+    val settings by settingsStore.settings.collectAsStateWithLifecycle(AuraSettings())
+
     var tab by remember { mutableStateOf(AuraTab.Today) }
     var showYou by remember { mutableStateOf(false) }
-    var deepSea by remember { mutableStateOf(false) }
+    var writing by remember { mutableStateOf(false) }
+    var archiveQuery by remember { mutableStateOf("") }
+    // Today's mood and check-in count are per-session for now; they belong on
+    // a days table alongside the heatmap, which is not built yet.
     var selectedMood by remember { mutableStateOf<Mood?>(Mood.Calm) }
     var checkIns by remember { mutableIntStateOf(3) }
-    var showHud by remember { mutableStateOf(false) }
-    var motionIndex by remember { mutableIntStateOf(1) }
-    var dailyReminder by remember { mutableStateOf(true) }
-    var archiveQuery by remember { mutableStateOf("") }
-    var writing by remember { mutableStateOf(false) }
-    var shaderIntensity by remember { mutableFloatStateOf(1f) }
-    val entries = remember { SeedData.entries.toMutableStateList() }
 
     AuraMaterialTheme {
         if (writing) {
@@ -63,19 +75,22 @@ fun AuraApp(refreshHz: Float) {
                 dateLabel = "Monday, 8:04 AM",
                 prompt = "What is a small detail you noticed today that brought " +
                     "an unexpected sense of calm?",
-                onSave = { _, _ -> writing = false },
+                onSave = { title, body ->
+                    scope.launch {
+                        entryStore.save(title, body, selectedMood ?: Mood.Calm)
+                        writing = false
+                    }
+                },
                 onDismiss = { writing = false },
             )
             return@AuraMaterialTheme
         }
 
         LiquidBackground(
-            palette = if (deepSea) ShaderPalette.DeepSea else ShaderPalette.LiquidGlass,
-            speed = motionNames[motionIndex].second,
-            intensity = shaderIntensity,
+            palette = if (settings.deepSea) ShaderPalette.DeepSea else ShaderPalette.LiquidGlass,
+            speed = motionLevels[settings.motionIndex.coerceIn(0, 2)].second,
         ) {
             Scaffold(
-                // Transparent so the shader stays visible behind the chrome.
                 containerColor = Color.Transparent,
                 topBar = {
                     AuraTopBar(
@@ -92,9 +107,7 @@ fun AuraApp(refreshHz: Float) {
                     )
                 },
             ) { inner ->
-                // 1b screens are specified on a flat sheet, not the live
-                // shader. Without it the low-alpha heatmap dots blend with the
-                // moving background and the mood colours go muddy.
+                // 1b screens are specified on a flat sheet, not the live shader.
                 val onSheet = showYou || tab == AuraTab.Archive
                 Box(
                     Modifier
@@ -120,19 +133,28 @@ fun AuraApp(refreshHz: Float) {
                                 streakDays = 7,
                                 entryCount = entries.size,
                                 points = 2450,
-                                themeName = if (deepSea) "Deep Sea" else "Liquid Glass",
-                                motionName = motionNames[motionIndex].first,
-                                dailyReminder = dailyReminder,
-                                onDailyReminder = { dailyReminder = it },
+                                themeName = if (settings.deepSea) "Deep Sea" else "Liquid Glass",
+                                motionName = motionLevels[
+                                    settings.motionIndex.coerceIn(0, 2)
+                                ].first,
+                                dailyReminder = settings.dailyReminder,
+                                onDailyReminder = {
+                                    scope.launch { settingsStore.setDailyReminder(it) }
+                                },
                                 onCreateAccount = {},
                                 onSignIn = {},
-                                onOpenTheme = { deepSea = !deepSea },
+                                onOpenTheme = {
+                                    scope.launch { settingsStore.setDeepSea(!settings.deepSea) }
+                                },
                                 onOpenMotion = {
-                                    motionIndex = (motionIndex + 1) % motionNames.size
+                                    scope.launch {
+                                        settingsStore.setMotion((settings.motionIndex + 1) % 3)
+                                    }
                                 },
                                 onExport = {},
-                                hudOn = showHud,
-                                onToggleHud = { showHud = it },
+                                onResetData = { scope.launch { entryStore.reset() } },
+                                hudOn = settings.showHud,
+                                onToggleHud = { scope.launch { settingsStore.setShowHud(it) } },
                             )
                         } else when (tab) {
                             AuraTab.Today -> TodayScreen(
@@ -148,7 +170,7 @@ fun AuraApp(refreshHz: Float) {
                                     selectedMood = it
                                     if (checkIns < 4) checkIns++
                                 },
-                                onWriteFromQuote = {},
+                                onWriteFromQuote = { writing = true },
                                 onViewAll = { tab = AuraTab.Archive },
                             )
 
@@ -156,7 +178,11 @@ fun AuraApp(refreshHz: Float) {
                                 month = BloomSeed.month,
                                 summary = BloomSeed.summary,
                                 days = BloomSeed.weeks,
-                                entries = entries,
+                                entries = entries.filter {
+                                    archiveQuery.isBlank() ||
+                                        it.title.contains(archiveQuery, true) ||
+                                        it.content.contains(archiveQuery, true)
+                                },
                                 query = archiveQuery,
                                 onQuery = { archiveQuery = it },
                             )
@@ -178,7 +204,7 @@ fun AuraApp(refreshHz: Float) {
                         }
                     }
 
-                    if (showHud) {
+                    if (settings.showHud) {
                         DevHud(refreshHz, Modifier.align(Alignment.TopEnd).padding(8.dp))
                     }
                 }

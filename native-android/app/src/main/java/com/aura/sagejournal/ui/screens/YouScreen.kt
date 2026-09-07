@@ -53,6 +53,7 @@ fun YouScreen(
     onOpenTheme: () -> Unit,
     onOpenMotion: () -> Unit,
     onExport: () -> Unit,
+    onResetData: () -> Unit,
     hudOn: Boolean,
     onToggleHud: (Boolean) -> Unit,
 ) {
@@ -142,6 +143,7 @@ fun YouScreen(
         SettingRow("Background motion", motionName, onOpenMotion)
         SwitchRow("Daily reminder", dailyReminder, onDailyReminder)
         SettingRow("Export my journal", null, onExport)
+        SettingRow("Reset journal data", null, onResetData)
         SwitchRow("Frame stats overlay", hudOn, onToggleHud)
         HorizontalDivider(color = AuraColors.Hairline)
 
