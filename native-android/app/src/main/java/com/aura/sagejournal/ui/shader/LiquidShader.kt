@@ -1,4 +1,4 @@
-package com.aura.sagejournal.lab
+package com.aura.sagejournal.ui.shader
 
 /**
  * AGSL port of the WebGL fragment shader in
@@ -73,7 +73,7 @@ half4 main(float2 fragCoord) {
 """
 
 /** Palettes lifted from LiquidShaderCanvas.tsx's isDeepSea branches. */
-enum class AuraTheme(
+enum class ShaderPalette(
     val color1: Triple<Float, Float, Float>,
     val color2: Triple<Float, Float, Float>,
     val color3: Triple<Float, Float, Float>,

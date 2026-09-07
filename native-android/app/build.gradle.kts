@@ -5,12 +5,12 @@ plugins {
 }
 
 android {
-    namespace = "com.aura.sagejournal.lab"
+    namespace = "com.aura.sagejournal"
     compileSdk = 36
 
     defaultConfig {
-        // Distinct from the Capacitor app's com.aura.sagejournal so both can
-        // be installed side by side while the hybrid build keeps shipping.
+        // Suffixed so this installs alongside the shipping Capacitor build
+        // during the port. Drops to com.aura.sagejournal when it replaces it.
         applicationId = "com.aura.sagejournal.lab"
         // AGSL (RuntimeShader) is API 33+. Production would need a fallback
         // for 24..32; the gate deliberately tests the intended path only.
@@ -44,6 +44,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.activity:activity-compose:1.9.2")
     implementation("androidx.core:core-ktx:1.13.1")
 }

@@ -1,4 +1,4 @@
-package com.aura.sagejournal.lab
+package com.aura.sagejournal.dev
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
