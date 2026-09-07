@@ -1,5 +1,6 @@
 package com.aura.sagejournal
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,17 +22,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.aura.sagejournal.dev.DevHud
 import com.aura.sagejournal.domain.Mood
+import com.aura.sagejournal.domain.BloomSeed
 import com.aura.sagejournal.domain.SeedData
 import com.aura.sagejournal.domain.TrendsSeed
 import com.aura.sagejournal.ui.components.AuraNavBar
 import com.aura.sagejournal.ui.components.AuraTab
 import com.aura.sagejournal.ui.components.AuraTopBar
 import com.aura.sagejournal.ui.components.LiquidBackground
+import com.aura.sagejournal.ui.screens.ArchiveScreen
 import com.aura.sagejournal.ui.screens.InsightsScreen
 import com.aura.sagejournal.ui.screens.NotPortedYet
 import com.aura.sagejournal.ui.screens.TodayScreen
 import com.aura.sagejournal.ui.screens.YouScreen
 import com.aura.sagejournal.ui.shader.ShaderPalette
+import com.aura.sagejournal.ui.theme.AuraColors
 import com.aura.sagejournal.ui.theme.AuraDims
 import com.aura.sagejournal.ui.theme.AuraMaterialTheme
 
@@ -47,6 +51,7 @@ fun AuraApp(refreshHz: Float) {
     var showHud by remember { mutableStateOf(false) }
     var motionIndex by remember { mutableIntStateOf(1) }
     var dailyReminder by remember { mutableStateOf(true) }
+    var archiveQuery by remember { mutableStateOf("") }
     var shaderIntensity by remember { mutableFloatStateOf(1f) }
     val entries = remember { SeedData.entries.toMutableStateList() }
 
@@ -74,7 +79,19 @@ fun AuraApp(refreshHz: Float) {
                     )
                 },
             ) { inner ->
-                Box(Modifier.fillMaxSize().padding(inner)) {
+                // 1b screens are specified on a flat sheet, not the live
+                // shader. Without it the low-alpha heatmap dots blend with the
+                // moving background and the mood colours go muddy.
+                val onSheet = showYou || tab == AuraTab.Archive
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(inner)
+                        .background(
+                            if (onSheet) AuraColors.BackgroundAlt.copy(alpha = 0.94f)
+                            else Color.Transparent
+                        )
+                ) {
                     Column(
                         Modifier
                             .fillMaxSize()
@@ -122,10 +139,13 @@ fun AuraApp(refreshHz: Float) {
                                 onViewAll = { tab = AuraTab.Archive },
                             )
 
-                            AuraTab.Archive -> NotPortedYet(
-                                "Archive", 469,
-                                "Next up: 1b Bloom Heatmap — a 7x5 grid where dot size " +
-                                    "is how much you wrote and colour is the mood.",
+                            AuraTab.Archive -> ArchiveScreen(
+                                month = BloomSeed.month,
+                                summary = BloomSeed.summary,
+                                days = BloomSeed.weeks,
+                                entries = entries,
+                                query = archiveQuery,
+                                onQuery = { archiveQuery = it },
                             )
 
                             AuraTab.Breathe -> NotPortedYet(
