@@ -31,6 +31,7 @@ import com.aura.sagejournal.ui.components.AuraTopBar
 import com.aura.sagejournal.ui.components.LiquidBackground
 import com.aura.sagejournal.ui.screens.ArchiveScreen
 import com.aura.sagejournal.ui.screens.InsightsScreen
+import com.aura.sagejournal.ui.screens.NewEntryScreen
 import com.aura.sagejournal.ui.screens.NotPortedYet
 import com.aura.sagejournal.ui.screens.TodayScreen
 import com.aura.sagejournal.ui.screens.YouScreen
@@ -52,10 +53,22 @@ fun AuraApp(refreshHz: Float) {
     var motionIndex by remember { mutableIntStateOf(1) }
     var dailyReminder by remember { mutableStateOf(true) }
     var archiveQuery by remember { mutableStateOf("") }
+    var writing by remember { mutableStateOf(false) }
     var shaderIntensity by remember { mutableFloatStateOf(1f) }
     val entries = remember { SeedData.entries.toMutableStateList() }
 
     AuraMaterialTheme {
+        if (writing) {
+            NewEntryScreen(
+                dateLabel = "Monday, 8:04 AM",
+                prompt = "What is a small detail you noticed today that brought " +
+                    "an unexpected sense of calm?",
+                onSave = { _, _ -> writing = false },
+                onDismiss = { writing = false },
+            )
+            return@AuraMaterialTheme
+        }
+
         LiquidBackground(
             palette = if (deepSea) ShaderPalette.DeepSea else ShaderPalette.LiquidGlass,
             speed = motionNames[motionIndex].second,
@@ -75,7 +88,7 @@ fun AuraApp(refreshHz: Float) {
                     AuraNavBar(
                         selected = tab,
                         onSelect = { tab = it; showYou = false },
-                        onWrite = { /* 1b New Entry · Dictating — not built yet */ },
+                        onWrite = { writing = true },
                     )
                 },
             ) { inner ->
