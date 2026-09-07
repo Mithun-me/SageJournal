@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Milestone, MoodTrendDay } from '../../types';
 import { Sparkles, Trophy, Calendar, Lock, Flame, RefreshCw, Star } from 'lucide-react';
 import { triggerHaptic } from '../../utils/haptics';
+import { postJson } from '../../utils/api';
 
 interface TrendsScreenProps {
   totalPoints: number;
@@ -28,12 +29,11 @@ export const TrendsScreen: React.FC<TrendsScreenProps> = ({
     triggerHaptic('medium');
     setIsRefreshingInsight(true);
     try {
-      const res = await fetch('/api/gemini/insights', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ streak, entriesCount: 8, dominantMood: 'Calm' }),
+      const data = await postJson<{ insight?: string }>('/api/gemini/insights', {
+        streak,
+        entriesCount: 8,
+        dominantMood: 'Calm',
       });
-      const data = await res.json();
       if (data.insight) {
         setAiInsight(data.insight);
       }

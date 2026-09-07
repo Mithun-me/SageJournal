@@ -11,9 +11,45 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 app.use(express.json());
+
+// Capacitor serves the bundled app from https://localhost inside the Android
+// WebView, so those requests are cross-origin and need explicit CORS headers.
+// EXTRA_CORS_ORIGINS (comma-separated) covers tunnels and deployed frontends.
+const ALLOWED_ORIGINS = new Set<string>([
+  'https://localhost',
+  'capacitor://localhost',
+  ...(process.env.EXTRA_CORS_ORIGINS || '')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean),
+]);
+
+// Origins carry their port, so match any localhost port for browser dev.
+const LOCALHOST_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+
+const isAllowedOrigin = (origin: string) =>
+  ALLOWED_ORIGINS.has(origin) || LOCALHOST_ORIGIN.test(origin);
+
+app.use((req: Request, res: Response, next) => {
+  const origin = req.headers.origin;
+  if (origin && isAllowedOrigin(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  }
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(204);
+    return;
+  }
+  next();
+});
+
+// Gemini model id, overridable without touching the four call sites below.
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
 // Initialize GoogleGenAI client lazily if key exists
 let aiClient: GoogleGenAI | null = null;
@@ -77,7 +113,7 @@ Format your response as valid JSON with keys:
 - "suggestedAffirmation": (string) A concise, empowering grounding affirmation.`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
+      model: GEMINI_MODEL,
       contents: aiPrompt,
       config: {
         responseMimeType: 'application/json',
@@ -117,7 +153,7 @@ app.post('/api/gemini/prompt', async (req: Request, res: Response) => {
     }
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
+      model: GEMINI_MODEL,
       contents: `Generate one concise, evocative, and psychologically grounded mindfulness journal prompt for a user feeling ${currentMood || 'Reflective'}. The category is ${category || 'Daily Presence'}. Return only the question text in 1 sentence.`,
     });
 
@@ -212,7 +248,7 @@ Provide the output strictly formatted in the following JSON format:
 Ensure your response is valid JSON only.`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
+      model: GEMINI_MODEL,
       contents: searchPrompt,
       config: {
         tools: [{ googleSearch: {} }],
@@ -312,7 +348,7 @@ app.post('/api/gemini/insights', async (req: Request, res: Response) => {
 
     const prompt = `Based on user stats: 7-day streak (${streak} days), ${entriesCount} total entries, dominant mood '${dominantMood || 'Calm'}'. Provide one encouraging 2-sentence emotional pattern insight and one actionable gentle micro-habit tip. Return JSON with 'insight' and 'tip'.`;
     const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
+      model: GEMINI_MODEL,
       contents: prompt,
       config: { responseMimeType: 'application/json' },
     });

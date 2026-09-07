@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { DailyAffirmation, MoodType } from '../../types';
 import { Sparkles, RefreshCw, Quote, ExternalLink, Bookmark, Check, Copy, Volume2, Globe, Feather } from 'lucide-react';
 import { triggerHaptic } from '../../utils/haptics';
+import { postJson } from '../../utils/api';
 
 interface DailyAffirmationWidgetProps {
   onReflectWithQuote?: (quote: string, author: string) => void;
@@ -51,19 +52,13 @@ export const DailyAffirmationWidget: React.FC<DailyAffirmationWidgetProps> = ({
     setIsLoading(true);
     try {
       const topic = topicOverride || (currentMood ? `${currentMood} mindset and calm mindfulness` : 'peace, presence and inner stillness');
-      const res = await fetch('/api/gemini/daily-affirmation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic }),
+      const data = await postJson<DailyAffirmation>('/api/gemini/daily-affirmation', {
+        topic,
       });
-
-      if (res.ok) {
-        const data = await res.json();
-        setAffirmation(data);
-        localStorage.setItem('aura_daily_affirmation', JSON.stringify(data));
-        localStorage.setItem('aura_daily_affirmation_date', new Date().toDateString());
-        triggerHaptic('success');
-      }
+      setAffirmation(data);
+      localStorage.setItem('aura_daily_affirmation', JSON.stringify(data));
+      localStorage.setItem('aura_daily_affirmation_date', new Date().toDateString());
+      triggerHaptic('success');
     } catch (err) {
       console.error('Failed to fetch affirmation:', err);
     } finally {

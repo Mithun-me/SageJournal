@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { JournalEntry, MoodType } from '../../types';
 import { X, MoreHorizontal, Sparkles, Image as ImageIcon, MapPin, CheckCircle, RefreshCw, Mic, Volume2 } from 'lucide-react';
 import { triggerHaptic } from '../../utils/haptics';
+import { postJson } from '../../utils/api';
 
 interface NewEntryModalProps {
   isOpen: boolean;
@@ -51,12 +52,9 @@ export const NewEntryModal: React.FC<NewEntryModalProps> = ({
     triggerHaptic('light');
     setIsGeneratingPrompt(true);
     try {
-      const res = await fetch('/api/gemini/prompt', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ currentMood: mood }),
+      const data = await postJson<{ prompt?: string }>('/api/gemini/prompt', {
+        currentMood: mood,
       });
-      const data = await res.json();
       if (data.prompt) setSelectedPrompt(data.prompt);
     } catch (e) {
       console.error(e);
@@ -73,17 +71,11 @@ export const NewEntryModal: React.FC<NewEntryModalProps> = ({
     triggerHaptic('medium');
     setIsGeneratingReflection(true);
     try {
-      const res = await fetch('/api/gemini/reflect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title,
-          content,
-          mood,
-          prompt: selectedPrompt,
-        }),
-      });
-      const data = await res.json();
+      const data = await postJson<{
+        reflection?: string;
+        themes?: string[];
+        suggestedAffirmation?: string;
+      }>('/api/gemini/reflect', { title, content, mood, prompt: selectedPrompt });
       if (data.reflection) {
         setGeneratedReflection({
           reflection: data.reflection,

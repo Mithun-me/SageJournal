@@ -54,7 +54,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
   return (
     <nav
       id="bottom-nav-bar"
-      className="fixed bottom-0 left-0 right-0 z-40 bg-[#0a0c1a]/90 backdrop-blur-2xl border-t border-white/[0.08] px-3 pt-2 pb-5 transition-all duration-300"
+      className="aura-safe-bottom fixed bottom-0 left-0 right-0 z-40 bg-[#0a0c1a]/90 backdrop-blur-2xl border-t border-white/[0.08] px-3 pt-2 transition-all duration-300"
     >
       <div className="max-w-md mx-auto flex items-center justify-around relative">
         {tabs.slice(0, 2).map((tab) => {

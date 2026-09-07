@@ -1,1 +1,26 @@
 @import "tailwindcss";
+
+/* Android 15+ (targetSdk 36) enforces edge-to-edge, so the WebView spans the
+   whole display, including under the status and navigation bars. index.html
+   already sets viewport-fit=cover, which is what makes these env() insets
+   resolve to real values. In a desktop browser they fall back to 0px, so the
+   web layout is unchanged. */
+
+/* Fixed top chrome: clear the OS status bar. */
+.aura-safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Fixed bottom chrome: clear the gesture/navigation bar. The 1.25rem matches
+   the pb-5 this replaces, so the browser rendering is identical. */
+.aura-safe-bottom {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1.25rem);
+}
+
+/* Native-only scroll padding. The simulated iOS status bar is hidden on device,
+   so the header is shorter than on web and the offset is measured from the
+   real status bar inset instead of the web build's flat pt-24. */
+.aura-main-offset {
+  padding-top: calc(env(safe-area-inset-top, 0px) + 4rem);
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 7rem);
+}

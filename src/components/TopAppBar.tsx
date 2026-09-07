@@ -3,6 +3,7 @@ import { Sparkles, Flame, Moon, Sun } from 'lucide-react';
 import { AppTheme } from '../types';
 import { StatusBar } from './mobile/StatusBar';
 import { triggerHaptic } from '../utils/haptics';
+import { isNative } from '../utils/platform';
 
 interface TopAppBarProps {
   streak: number;
@@ -23,10 +24,11 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
   return (
     <header
       id="top-app-bar"
-      className="fixed top-0 left-0 w-full z-40 bg-[#0a0c1a]/80 backdrop-blur-2xl border-b border-white/[0.08] transition-all duration-300"
+      className="aura-safe-top fixed top-0 left-0 w-full z-40 bg-[#0a0c1a]/80 backdrop-blur-2xl border-b border-white/[0.08] transition-all duration-300"
     >
-      {/* Mobile System Status Bar */}
-      <StatusBar showIsland={showIsland} />
+      {/* Simulated iOS status bar — browser previews only. On a real device the
+          OS draws its own, so rendering this too would duplicate the clock. */}
+      {!isNative && <StatusBar showIsland={showIsland} />}
 
       {/* Main Header Content */}
       <div className="flex justify-between items-center px-4 sm:px-6 py-2.5">

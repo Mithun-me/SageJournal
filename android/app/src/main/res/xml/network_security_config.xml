@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- HTTPS-only by default. -->
+    <base-config cleartextTrafficPermitted="false" />
+
+    <!-- Aura's LAN dev backend, matching VITE_API_BASE_URL in .env.android.
+         Update the address if your Mac's IP changes; delete this block entirely
+         once the backend is reachable over HTTPS. -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">10.69.126.255</domain>
+        <domain includeSubdomains="false">localhost</domain>
+        <!-- Host loopback as seen from the Android emulator. -->
+        <domain includeSubdomains="false">10.0.2.2</domain>
+    </domain-config>
+</network-security-config>

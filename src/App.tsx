@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { JournalEntry, TabType, AppTheme, MoodType } from './types';
 import { INITIAL_ENTRIES, INITIAL_MILESTONES, INITIAL_WEEK_TRENDS } from './data/initialData';
 import { LiquidShaderCanvas } from './components/LiquidShaderCanvas';
+import { isNative } from './utils/platform';
 import { TopAppBar } from './components/TopAppBar';
 import { BottomNavBar } from './components/BottomNavBar';
 import { HomeScreen } from './components/screens/HomeScreen';
@@ -131,7 +132,11 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <main className="pt-24 pb-28 px-4 sm:px-6 relative z-10">
+      <main
+        className={`px-4 sm:px-6 relative z-10 ${
+          isNative ? 'aura-main-offset' : 'pt-24 pb-28'
+        }`}
+      >
         {activeTab === 'home' && (
           <HomeScreen
             entries={entries}
