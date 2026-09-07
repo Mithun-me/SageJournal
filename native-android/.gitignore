@@ -1,0 +1,12 @@
+# Gradle / Android build artifacts
+.gradle/
+build/
+local.properties
+*.apk
+*.aab
+captures/
+.cxx/
+
+# IDE
+.idea/
+*.iml
