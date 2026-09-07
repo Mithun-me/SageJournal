@@ -24,3 +24,12 @@
   padding-top: calc(env(safe-area-inset-top, 0px) + 4rem);
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 7rem);
 }
+
+/* Floating new-entry button. Anchored above the tab bar rather than overlapping
+   it, so it cannot cover or intercept taps on the rightmost tab. The offset
+   clears the nav bar's own height plus the gesture-bar inset. */
+.aura-fab {
+  position: fixed;
+  right: 1rem;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 5.5rem);
+}
