@@ -12,6 +12,7 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
@@ -25,6 +26,7 @@ import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import kotlin.math.floor
 import com.aura.sagejournal.ui.shader.LIQUID_AGSL
 import com.aura.sagejournal.ui.shader.ShaderPalette
 import com.aura.sagejournal.ui.theme.AuraColors
@@ -37,16 +39,27 @@ import com.aura.sagejournal.ui.theme.AuraColors
  */
 val LocalBackdrop = compositionLocalOf<GraphicsLayer?> { null }
 
+/**
+ * Cap on how often the backdrop is re-rasterised. The liquid moves slowly
+ * enough that matching a 90Hz display would triple the shader work for no
+ * visible gain, and it decouples backdrop cost from display refresh rate.
+ */
+private const val BACKDROP_FPS = 30f
+
 @Composable
-private fun rememberShaderClock(animated: Boolean): Float {
+private fun rememberShaderClock(animated: Boolean, speed: () -> Float): Float {
     var seconds by remember { mutableFloatStateOf(0f) }
     LaunchedEffect(animated) {
         if (!animated) return@LaunchedEffect
-        var origin = 0L
+        var last = 0L
         while (true) {
             withFrameNanos { now ->
-                if (origin == 0L) origin = now
-                seconds = (now - origin) / 1_000_000_000f
+                if (last != 0L) {
+                    // Accumulate scaled time: changing speed eases into the new
+                    // rate instead of jumping, which rescaling wall-clock would.
+                    seconds += ((now - last) / 1_000_000_000f) * speed()
+                }
+                last = now
             }
         }
     }
@@ -63,9 +76,13 @@ private fun rememberShaderClock(animated: Boolean): Float {
 fun LiquidBackground(
     palette: ShaderPalette = ShaderPalette.LiquidGlass,
     animated: Boolean = true,
+    speed: Float = 1f,
+    intensity: Float = 1f,
     content: @Composable BoxScope.() -> Unit,
 ) {
-    val time = rememberShaderClock(animated)
+    // Read through a lambda so the frame loop sees changes without restarting.
+    val currentSpeed = rememberUpdatedState(speed)
+    val time = rememberShaderClock(animated) { currentSpeed.value }
     val shader = remember { RuntimeShader(LIQUID_AGSL) }
     val brush = remember(shader) { ShaderBrush(shader) }
     val sharp = rememberGraphicsLayer()
@@ -79,13 +96,16 @@ fun LiquidBackground(
             .background(AuraColors.Background)
             .drawWithCache {
                 onDrawBehind {
-                    val key = listOf(time, palette, size.width, size.height)
+                    // Quantise to the backdrop's own cadence, so a 90Hz display
+                    // does not re-rasterise the shader 90 times a second.
+                    val frameTime = floor(time * BACKDROP_FPS) / BACKDROP_FPS
+                    val key = listOf(frameTime, palette, intensity, size.width, size.height)
                     if (lastKey[0] != key) {
                         lastKey[0] = key
                         shader.setFloatUniform("uResolution", size.width, size.height)
-                        shader.setFloatUniform("uTime", time)
+                        shader.setFloatUniform("uTime", frameTime)
                         shader.setFloatUniform("uPointer", size.width / 2f, size.height / 2f)
-                        shader.setFloatUniform("uIntensity", 1f)
+                        shader.setFloatUniform("uIntensity", intensity)
                         shader.setFloatUniform(
                             "uColor1", palette.color1.first, palette.color1.second, palette.color1.third
                         )

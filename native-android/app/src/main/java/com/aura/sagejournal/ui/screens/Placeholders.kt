@@ -39,32 +39,3 @@ fun NotPortedYet(screen: String, webLines: Int, notes: String) {
         }
     }
 }
-
-@Composable
-fun SettingsPlaceholder(hudOn: Boolean, onToggleHud: () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        NotPortedYet(
-            "Settings", 333,
-            "Theme picker, shader speed/intensity sliders, data reset. The shader " +
-                "controls map to the palette and clock already wired up here.",
-        )
-        GlassSurface(Modifier.fillMaxWidth()) {
-            Column(
-                Modifier.clickable(onClick = onToggleHud).padding(18.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Text(
-                    if (hudOn) "Hide frame stats" else "Show frame stats",
-                    color = AuraColors.PrimaryBright,
-                    fontSize = AuraType.cardTitleSize,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    "Measures the real screens rather than the synthetic gate.",
-                    color = AuraColors.TextTertiary,
-                    fontSize = AuraType.labelSize,
-                )
-            }
-        }
-    }
-}

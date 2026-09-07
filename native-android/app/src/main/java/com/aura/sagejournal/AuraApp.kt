@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -27,7 +28,7 @@ import com.aura.sagejournal.ui.components.LiquidBackground
 import com.aura.sagejournal.ui.screens.HomeScreen
 import com.aura.sagejournal.ui.screens.InsightsScreen
 import com.aura.sagejournal.ui.screens.NotPortedYet
-import com.aura.sagejournal.ui.screens.SettingsPlaceholder
+import com.aura.sagejournal.ui.screens.SettingsScreen
 import com.aura.sagejournal.ui.shader.ShaderPalette
 
 @Composable
@@ -36,10 +37,14 @@ fun AuraApp(refreshHz: Float) {
     var deepSea by remember { mutableStateOf(false) }
     var selectedMood by remember { mutableStateOf<Mood?>(Mood.Calm) }
     var showHud by remember { mutableStateOf(false) }
+    var shaderSpeed by remember { mutableFloatStateOf(1f) }
+    var shaderIntensity by remember { mutableFloatStateOf(1f) }
     val entries = remember { SeedData.entries.toMutableStateList() }
 
     LiquidBackground(
         palette = if (deepSea) ShaderPalette.DeepSea else ShaderPalette.LiquidGlass,
+        speed = shaderSpeed,
+        intensity = shaderIntensity,
     ) {
         Column(Modifier.fillMaxSize()) {
             AuraTopBar(
@@ -101,7 +106,22 @@ fun AuraApp(refreshHz: Float) {
                                 "Wednesday was your only day without one.",
                         )
 
-                        AuraTab.Settings -> SettingsPlaceholder(showHud) { showHud = !showHud }
+                        AuraTab.Settings -> SettingsScreen(
+                            palette = if (deepSea) ShaderPalette.DeepSea
+                                      else ShaderPalette.LiquidGlass,
+                            onSelectPalette = { deepSea = it == ShaderPalette.DeepSea },
+                            shaderSpeed = shaderSpeed,
+                            onShaderSpeed = { shaderSpeed = it },
+                            shaderIntensity = shaderIntensity,
+                            onShaderIntensity = { shaderIntensity = it },
+                            entryCount = entries.size,
+                            onResetData = {
+                                entries.clear()
+                                entries.addAll(SeedData.entries)
+                            },
+                            hudOn = showHud,
+                            onToggleHud = { showHud = !showHud },
+                        )
                     }
                 }
 
