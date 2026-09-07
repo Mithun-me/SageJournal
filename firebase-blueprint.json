@@ -1,0 +1,41 @@
+{
+  "entities": {
+    "UserProfile": {
+      "collection": "users",
+      "fields": {
+        "userId": { "type": "string", "description": "Firebase Auth UID" },
+        "displayName": { "type": "string", "description": "User chosen non-PII display nickname" },
+        "avatarEmoji": { "type": "string", "description": "User chosen avatar emoji" },
+        "totalPoints": { "type": "number", "description": "Mindfulness points earned" },
+        "streak": { "type": "number", "description": "Current consecutive streak days" },
+        "lastActiveDate": { "type": "string", "description": "Last active day format" },
+        "theme": { "type": "string", "description": "Preferred UI theme" },
+        "createdAt": { "type": "string", "description": "ISO creation timestamp" },
+        "updatedAt": { "type": "string", "description": "ISO updated timestamp" }
+      }
+    },
+    "JournalEntry": {
+      "collection": "users/{userId}/entries",
+      "fields": {
+        "id": { "type": "string", "description": "Unique entry identifier" },
+        "title": { "type": "string", "description": "Reflection title" },
+        "content": { "type": "string", "description": "Journal text body" },
+        "mood": { "type": "string", "description": "Mood category (Joy, Calm, Reflective, Tired, Anxious)" },
+        "moodEmoji": { "type": "string", "description": "Mood icon emoji" },
+        "date": { "type": "string", "description": "Human readable date label" },
+        "time": { "type": "string", "description": "Time of recording" },
+        "timestamp": { "type": "number", "description": "Epoch millisecond timestamp" },
+        "location": { "type": "string", "description": "Sanctuary / location tag" },
+        "isAudio": { "type": "boolean", "description": "Whether dictated via voice" },
+        "audioDuration": { "type": "string", "description": "Duration label" },
+        "isFavorite": { "type": "boolean", "description": "Marked as favorite memory" },
+        "tags": { "type": "array", "description": "Tags list" },
+        "aiReflection": { "type": "string", "description": "Empathetic mindful reflection" },
+        "aiAffirmation": { "type": "string", "description": "Grounding affirmation" },
+        "userId": { "type": "string", "description": "Owner UID" },
+        "createdAt": { "type": "string", "description": "ISO creation timestamp" },
+        "updatedAt": { "type": "string", "description": "ISO update timestamp" }
+      }
+    }
+  }
+}

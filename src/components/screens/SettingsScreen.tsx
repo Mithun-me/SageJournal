@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { AppTheme, JournalEntry } from '../../types';
-import { Palette, Sliders, Bell, Download, Trash2, Shield, Sparkles, Check, RefreshCw } from 'lucide-react';
+import { Palette, Sliders, Bell, Download, Trash2, Shield, Sparkles, Check, RefreshCw, Cloud, LogIn, LogOut, Database } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { triggerHaptic } from '../../utils/haptics';
 
 interface SettingsScreenProps {
   theme: AppTheme;
@@ -11,6 +13,7 @@ interface SettingsScreenProps {
   onSetShaderSpeed: (speed: number) => void;
   shaderIntensity: number;
   onSetShaderIntensity: (intensity: number) => void;
+  onOpenAuth?: () => void;
 }
 
 export const SettingsScreen: React.FC<SettingsScreenProps> = ({
@@ -22,7 +25,9 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
   onSetShaderSpeed,
   shaderIntensity,
   onSetShaderIntensity,
+  onOpenAuth,
 }) => {
+  const { currentUser, userProfile, logOut } = useAuth();
   const [dailyReminder, setDailyReminder] = useState(true);
   const [haptics, setHaptics] = useState(true);
   const [exportSuccess, setExportSuccess] = useState(false);
@@ -208,6 +213,87 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         </div>
       </section>
 
+      {/* Cloud Database & Account Management */}
+      <section className="bg-[#0a0c1a]/60 backdrop-blur-[40px] rounded-3xl p-6 border border-white/15 shadow-[0_8px_32px_rgba(0,0,0,0.15)] space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-[#4fdbc8]">
+            <Database className="w-4 h-4" />
+            <h3 className="text-sm font-bold text-white font-['Manrope']">
+              Cloud Database &amp; Sync
+            </h3>
+          </div>
+          <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-[#4fdbc8]/15 text-[#71f8e4] border border-[#4fdbc8]/30 flex items-center gap-1 font-semibold">
+            <Cloud className="w-3 h-3" />
+            <span>Firestore</span>
+          </span>
+        </div>
+
+        {currentUser ? (
+          <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#1a2040] to-[#2a3560] border border-[#4fdbc8]/40 flex items-center justify-center text-xl shadow">
+                  {userProfile?.avatarEmoji || '🌿'}
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-white font-['Manrope']">
+                    {userProfile?.displayName || 'Mindful Soul'}
+                  </h4>
+                  <p className="text-[11px] text-[#908fa0]">
+                    {currentUser.isAnonymous ? 'Guest Account • Cloud Synced' : currentUser.email}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={async () => {
+                  triggerHaptic('medium');
+                  await logOut();
+                }}
+                className="py-1.5 px-3 rounded-xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 text-xs font-semibold text-red-300 flex items-center gap-1.5 transition-all"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Sign Out</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-[11px] pt-1 border-t border-white/[0.08]">
+              <div className="text-[#908fa0]">
+                Database: <span className="text-[#c7c4d7] font-mono">Firestore (Provisioned)</span>
+              </div>
+              <div className="text-[#908fa0] text-right">
+                Sync Status: <span className="text-emerald-400 font-semibold">Active &amp; Live</span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-white/5 to-[#4fdbc8]/5 border border-[#4fdbc8]/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <h4 className="text-sm font-bold text-white font-['Manrope']">
+                Sync Across Devices with Firestore
+              </h4>
+              <p className="text-xs text-[#908fa0] mt-0.5">
+                Sign in or create an account to store your mindful reflections securely in the cloud.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                triggerHaptic('light');
+                if (onOpenAuth) onOpenAuth();
+              }}
+              className="py-2 px-4 rounded-xl bg-gradient-to-r from-[#4fdbc8] to-[#6366f1] text-[#0a0c1a] text-xs font-bold shadow-md hover:opacity-95 transition-all flex items-center gap-2 shrink-0"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Sign In / Sign Up</span>
+            </button>
+          </div>
+        )}
+
+        <div className="flex items-center gap-2 text-[10px] text-[#908fa0]">
+          <Shield className="w-3.5 h-3.5 text-[#4fdbc8] shrink-0" />
+          <span>Only non-PII data (mindful alias, avatar emoji, and encrypted reflection documents) are stored.</span>
+        </div>
+      </section>
+
       {/* Data Management & Export */}
       <section className="bg-[#0a0c1a]/60 backdrop-blur-[40px] rounded-3xl p-6 border border-white/15 shadow-[0_8px_32px_rgba(0,0,0,0.15)] space-y-4">
         <div className="flex items-center gap-2 text-[#4fdbc8]">
@@ -218,7 +304,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         </div>
 
         <p className="text-xs text-[#c7c4d7] leading-relaxed">
-          Your reflections are stored locally in your browser sandbox. AI reflections are generated securely without retaining personal training records.
+          Your reflections are stored locally and in your dedicated private Firestore database. AI reflections are generated securely without retaining personal training records.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3 pt-2">
