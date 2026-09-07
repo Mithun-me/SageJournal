@@ -4,13 +4,18 @@ import androidx.compose.ui.graphics.Color
 import com.aura.sagejournal.ui.theme.AuraColors
 
 /** Ported from src/types.ts. */
-enum class Mood(val label: String, val emoji: String, val accent: Color) {
-    Calm("Calm", "😌", AuraColors.Primary),
-    Joy("Joy", "✨", AuraColors.Warm),
-    Reflective("Reflective", "🌿", AuraColors.Indigo),
-    Low("Low", "🌧️", AuraColors.CoolBlue),
-    Grounded("Grounded", "🪨", AuraColors.Primary),
-    Energetic("Energetic", "⚡", AuraColors.Warm),
+enum class Mood(
+    val label: String,
+    val shortLabel: String,
+    val emoji: String,
+    val accent: Color,
+) {
+    Calm("Calm", "Calm", "😌", AuraColors.Primary),
+    Joy("Joy", "Joy", "✨", AuraColors.Warm),
+    Reflective("Reflective", "Reflect", "🌿", AuraColors.Indigo),
+    Low("Low", "Low", "🌧️", AuraColors.CoolBlue),
+    Grounded("Grounded", "Ground", "🪨", AuraColors.Primary),
+    Energetic("Energetic", "Charged", "⚡", AuraColors.Warm),
 }
 
 data class JournalEntry(

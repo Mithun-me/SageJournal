@@ -73,7 +73,7 @@ fun InsightsScreen(
                 "PERIOD GAINS", "+$periodPoints", AuraColors.Warm)
         }
 
-        GlassSurface(Modifier.fillMaxWidth(), AuraShapes.CardLarge) {
+        GlassSurface(Modifier.fillMaxWidth(), AuraShapes.CardRaised) {
             Column(
                 Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -93,7 +93,7 @@ fun InsightsScreen(
                         Text(
                             "Clarity against points earned",
                             color = AuraColors.TextTertiary,
-                            fontSize = AuraType.microSize,
+                            fontSize = AuraType.overline,
                         )
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -102,7 +102,7 @@ fun InsightsScreen(
                             Text(
                                 r,
                                 color = if (on) AuraColors.OnPrimary else AuraColors.TextTertiary,
-                                fontSize = AuraType.microSize,
+                                fontSize = AuraType.overline,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier
                                     .clip(AuraShapes.Pill)
@@ -156,26 +156,26 @@ fun InsightsScreen(
                                 Text(
                                     p.fullDate,
                                     color = Color.White,
-                                    fontSize = AuraType.bodySize,
+                                    fontSize = AuraType.meta,
                                     fontWeight = FontWeight.Bold,
                                 )
                                 Text(
                                     "${p.clarityScore}%",
                                     color = AuraColors.PrimaryBright,
-                                    fontSize = AuraType.labelSize,
+                                    fontSize = AuraType.label,
                                     fontWeight = FontWeight.Bold,
                                 )
                                 Text(
                                     "+${p.pointsEarned} pts",
                                     color = AuraColors.Warm,
-                                    fontSize = AuraType.labelSize,
+                                    fontSize = AuraType.label,
                                     fontWeight = FontWeight.Bold,
                                 )
                             }
                             Text(
                                 p.notes,
                                 color = AuraColors.TextSecondary,
-                                fontSize = AuraType.labelSize,
+                                fontSize = AuraType.label,
                             )
                         }
                     }
@@ -193,13 +193,13 @@ fun InsightsScreen(
                     Text(
                         "Pattern noticed",
                         color = AuraColors.TextPrimary,
-                        fontSize = AuraType.cardTitleSize,
+                        fontSize = AuraType.cardTitle,
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
                         aiInsight,
                         color = AuraColors.TextSecondary,
-                        fontSize = AuraType.bodySize,
+                        fontSize = AuraType.meta,
                         lineHeight = 19.sp,
                     )
                 }
@@ -241,7 +241,7 @@ private fun StatCard(
                 Text(
                     label,
                     color = AuraColors.TextTertiary,
-                    fontSize = AuraType.microSize,
+                    fontSize = AuraType.overline,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 0.6.sp,
                 )
@@ -249,7 +249,7 @@ private fun StatCard(
             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(value, color = valueColor, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold)
                 suffix?.let {
-                    Text(it, color = AuraColors.TextTertiary, fontSize = AuraType.labelSize)
+                    Text(it, color = AuraColors.TextTertiary, fontSize = AuraType.label)
                 }
             }
         }
@@ -263,7 +263,7 @@ private fun LegendDot(color: Color, label: String) {
         horizontalArrangement = Arrangement.spacedBy(5.dp),
     ) {
         Box(Modifier.size(8.dp).clip(AuraShapes.Pill).background(color))
-        Text(label, color = AuraColors.TextTertiary, fontSize = AuraType.microSize)
+        Text(label, color = AuraColors.TextTertiary, fontSize = AuraType.overline)
     }
 }
 
@@ -296,7 +296,7 @@ private fun MilestoneRow(m: Milestone) {
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                 )
-                Text(m.subtitle, color = AuraColors.TextTertiary, fontSize = AuraType.labelSize)
+                Text(m.subtitle, color = AuraColors.TextTertiary, fontSize = AuraType.label)
 
                 if (!m.achieved && m.target > 0) {
                     val frac = m.progress.toFloat() / m.target
@@ -318,7 +318,7 @@ private fun MilestoneRow(m: Milestone) {
                     Text(
                         "${m.progress} of ${m.target}",
                         color = AuraColors.TextTertiary,
-                        fontSize = AuraType.microSize,
+                        fontSize = AuraType.overline,
                     )
                 }
             }
@@ -327,7 +327,7 @@ private fun MilestoneRow(m: Milestone) {
                 Text(
                     "Earned",
                     color = AuraColors.PrimaryBright,
-                    fontSize = AuraType.microSize,
+                    fontSize = AuraType.overline,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier
                         .clip(AuraShapes.Pill)

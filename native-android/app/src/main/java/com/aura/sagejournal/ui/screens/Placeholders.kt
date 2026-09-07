@@ -32,10 +32,10 @@ fun NotPortedYet(screen: String, webLines: Int, notes: String) {
             Text(
                 "Not ported yet — $webLines lines in the web build.",
                 color = AuraColors.Primary,
-                fontSize = AuraType.bodySize,
+                fontSize = AuraType.meta,
                 fontWeight = FontWeight.Bold,
             )
-            Text(notes, color = AuraColors.TextSecondary, fontSize = AuraType.bodySize)
+            Text(notes, color = AuraColors.TextSecondary, fontSize = AuraType.meta)
         }
     }
 }

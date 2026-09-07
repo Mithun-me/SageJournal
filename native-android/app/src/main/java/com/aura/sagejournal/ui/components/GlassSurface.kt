@@ -12,11 +12,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.aura.sagejournal.ui.theme.AuraColors
 import com.aura.sagejournal.ui.theme.AuraShapes
@@ -33,6 +35,9 @@ import com.aura.sagejournal.ui.theme.AuraShapes
 fun GlassSurface(
     modifier: Modifier = Modifier,
     shape: Shape = AuraShapes.Card,
+    tint: Color = AuraColors.Card.copy(alpha = 0.60f),
+    stroke: Color = AuraColors.CardStroke,
+    strokeWidth: Dp = 1.dp,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val backdrop = LocalBackdrop.current
@@ -44,9 +49,9 @@ fun GlassSurface(
             .clip(shape)
             .drawBehind {
                 backdrop?.let { translate(-origin.x, -origin.y) { drawLayer(it) } }
-                drawRect(AuraColors.Glass)
+                drawRect(tint)
             }
-            .border(1.dp, AuraColors.Hairline, shape),
+            .border(strokeWidth, stroke, shape),
         content = content,
     )
 }
