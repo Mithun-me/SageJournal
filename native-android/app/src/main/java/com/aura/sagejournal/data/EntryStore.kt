@@ -9,11 +9,16 @@ import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.Upsert
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
+import com.aura.sagejournal.domain.BloomDay
+import com.aura.sagejournal.domain.DayState
 import com.aura.sagejournal.domain.JournalEntry
 import com.aura.sagejournal.domain.Mood
 import com.aura.sagejournal.domain.SeedData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
@@ -54,9 +59,48 @@ interface EntryDao {
     suspend fun count(): Int
 }
 
-@Database(entities = [EntryRow::class], version = 1, exportSchema = false)
+/** One row per calendar day: the mood you tapped and how many check-ins. */
+@Entity(tableName = "days")
+data class DayRow(
+    @PrimaryKey val dayKey: String,
+    val mood: String? = null,
+    val checkIns: Int = 0,
+)
+
+@Dao
+interface DayDao {
+    @Query("SELECT * FROM days")
+    fun observeAll(): Flow<List<DayRow>>
+
+    @Query("SELECT * FROM days WHERE dayKey = :key")
+    suspend fun byKey(key: String): DayRow?
+
+    @Upsert
+    suspend fun upsert(row: DayRow)
+
+    @Query("DELETE FROM days")
+    suspend fun clear()
+}
+
+@Database(entities = [EntryRow::class, DayRow::class], version = 2, exportSchema = false)
 abstract class AuraDatabase : RoomDatabase() {
     abstract fun entries(): EntryDao
+    abstract fun days(): DayDao
+}
+
+/**
+ * Adds the days table without touching entries. A destructive migration would
+ * have been one line, but it would also delete the user's journal.
+ */
+val MIGRATION_1_2 = object : Migration(1, 2) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS days (" +
+                "dayKey TEXT NOT NULL PRIMARY KEY, " +
+                "mood TEXT, " +
+                "checkIns INTEGER NOT NULL DEFAULT 0)"
+        )
+    }
 }
 
 /**
@@ -69,9 +113,11 @@ abstract class AuraDatabase : RoomDatabase() {
 class EntryStore(context: Context) {
     private val db = Room
         .databaseBuilder(context.applicationContext, AuraDatabase::class.java, "aura.db")
+        .addMigrations(MIGRATION_1_2)
         .build()
 
     private val dao = db.entries()
+    private val dayDao = db.days()
 
     val entries: Flow<List<JournalEntry>> = dao.observeAll().map { rows ->
         rows.map { it.toDomain() }
@@ -92,6 +138,52 @@ class EntryStore(context: Context) {
         )
     }
 
+    /** Today's check-in row, or null before the first tap of the day. */
+    val today: Flow<DayRow?> = dayDao.observeAll().map { rows ->
+        rows.firstOrNull { it.dayKey == dayKey(System.currentTimeMillis()) }
+    }
+
+    /**
+     * The heatmap, derived rather than seeded: mood comes from the day's
+     * check-in and the dot size from words actually written that day.
+     */
+    val bloom: Flow<List<BloomDay>> = combine(
+        dayDao.observeAll(),
+        dao.observeAll(),
+    ) { days, rows ->
+        val byKey = days.associateBy { it.dayKey }
+        val wordsByKey = rows.groupBy { dayKey(it.createdAt) }
+            .mapValues { (_, v) -> v.sumOf { it.words } }
+        val todayKey = dayKey(System.currentTimeMillis())
+
+        windowOf35().map { key ->
+            val day = byKey[key]
+            BloomDay(
+                label = key.takeLast(2),
+                mood = day?.mood?.let { m -> runCatching { Mood.valueOf(m) }.getOrNull() },
+                words = wordsByKey[key] ?: 0,
+                state = when {
+                    key == todayKey -> DayState.Today
+                    key > todayKey -> DayState.Future
+                    else -> DayState.Past
+                },
+            )
+        }
+    }
+
+    /** A mood tap: records the day's mood and counts the check-in, capped at 4. */
+    suspend fun checkIn(mood: Mood) = withContext(Dispatchers.IO) {
+        val key = dayKey(System.currentTimeMillis())
+        val existing = dayDao.byKey(key)
+        dayDao.upsert(
+            DayRow(
+                dayKey = key,
+                mood = mood.name,
+                checkIns = ((existing?.checkIns ?: 0) + 1).coerceAtMost(4),
+            )
+        )
+    }
+
     suspend fun toggleFavourite(id: String) {
         val row = dao.byId(id) ?: return
         dao.upsert(row.copy(isFavorite = !row.isFavorite))
@@ -99,6 +191,7 @@ class EntryStore(context: Context) {
 
     suspend fun reset() = withContext(Dispatchers.IO) {
         dao.clear()
+        dayDao.clear()
         seed()
     }
 
@@ -150,4 +243,25 @@ private fun EntryRow.toDomain(): JournalEntry {
         isFavorite = isFavorite,
         location = location,
     )
+}
+
+private val keyFmt = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+
+private fun dayKey(millis: Long): String = keyFmt.format(Date(millis))
+
+/**
+ * Five Monday-aligned weeks ending with the week containing today, so today
+ * lands on its own weekday in the last row and the rest of that week reads as
+ * future — which is what the frames show.
+ */
+private fun windowOf35(): List<String> {
+    val cal = Calendar.getInstance().apply {
+        firstDayOfWeek = Calendar.MONDAY
+        // Back to this week's Monday, then back four more weeks.
+        val delta = (get(Calendar.DAY_OF_WEEK) - Calendar.MONDAY + 7) % 7
+        add(Calendar.DAY_OF_YEAR, -delta - 28)
+    }
+    return (0 until 35).map {
+        dayKey(cal.timeInMillis).also { _ -> cal.add(Calendar.DAY_OF_YEAR, 1) }
+    }
 }

@@ -11,7 +11,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -26,7 +25,6 @@ import com.aura.sagejournal.data.AuraSettings
 import com.aura.sagejournal.data.EntryStore
 import com.aura.sagejournal.data.SettingsStore
 import com.aura.sagejournal.dev.DevHud
-import com.aura.sagejournal.domain.BloomSeed
 import com.aura.sagejournal.domain.Mood
 import com.aura.sagejournal.domain.SeedData
 import com.aura.sagejournal.domain.TrendsSeed
@@ -46,6 +44,11 @@ import com.aura.sagejournal.ui.theme.AuraDims
 import com.aura.sagejournal.ui.theme.AuraMaterialTheme
 import kotlinx.coroutines.launch
 
+/** The heading tracks the real calendar; it was pinned to the seed's "October". */
+private fun currentMonthName(): String =
+    java.text.SimpleDateFormat("MMMM", java.util.Locale.getDefault())
+        .format(java.util.Date())
+
 private val motionLevels = listOf("Gentle" to 0.5f, "Balanced" to 1.0f, "Dynamic" to 1.6f)
 
 @Composable
@@ -59,15 +62,15 @@ fun AuraApp(refreshHz: Float) {
 
     val entries by entryStore.entries.collectAsStateWithLifecycle(emptyList())
     val settings by settingsStore.settings.collectAsStateWithLifecycle(AuraSettings())
+    val bloomDays by entryStore.bloom.collectAsStateWithLifecycle(emptyList())
+    val today by entryStore.today.collectAsStateWithLifecycle(null)
 
     var tab by remember { mutableStateOf(AuraTab.Today) }
     var showYou by remember { mutableStateOf(false) }
     var writing by remember { mutableStateOf(false) }
     var archiveQuery by remember { mutableStateOf("") }
-    // Today's mood and check-in count are per-session for now; they belong on
-    // a days table alongside the heatmap, which is not built yet.
-    var selectedMood by remember { mutableStateOf<Mood?>(Mood.Calm) }
-    var checkIns by remember { mutableIntStateOf(3) }
+
+    val todayMood = today?.mood?.let { m -> runCatching { Mood.valueOf(m) }.getOrNull() }
 
     AuraMaterialTheme {
         if (writing) {
@@ -77,7 +80,7 @@ fun AuraApp(refreshHz: Float) {
                     "an unexpected sense of calm?",
                 onSave = { title, body ->
                     scope.launch {
-                        entryStore.save(title, body, selectedMood ?: Mood.Calm)
+                        entryStore.save(title, body, todayMood ?: Mood.Calm)
                         writing = false
                     }
                 },
@@ -163,21 +166,19 @@ fun AuraApp(refreshHz: Float) {
                                 name = "Seeker",
                                 affirmation = SeedData.affirmation,
                                 entries = entries,
-                                selectedMood = selectedMood,
-                                checkInsDone = checkIns,
+                                selectedMood = todayMood,
+                                checkInsDone = today?.checkIns ?: 0,
                                 checkInTarget = 4,
-                                onSelectMood = {
-                                    selectedMood = it
-                                    if (checkIns < 4) checkIns++
-                                },
+                                onSelectMood = { scope.launch { entryStore.checkIn(it) } },
                                 onWriteFromQuote = { writing = true },
                                 onViewAll = { tab = AuraTab.Archive },
                             )
 
                             AuraTab.Archive -> ArchiveScreen(
-                                month = BloomSeed.month,
-                                summary = BloomSeed.summary,
-                                days = BloomSeed.weeks,
+                                month = currentMonthName(),
+                                summary = bloomDays.count { it.mood != null }.toString() +
+                                    " check-ins · " + entries.size + " entries written",
+                                days = bloomDays,
                                 entries = entries.filter {
                                     archiveQuery.isBlank() ||
                                         it.title.contains(archiveQuery, true) ||
