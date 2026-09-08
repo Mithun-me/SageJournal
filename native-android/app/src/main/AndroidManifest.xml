@@ -2,6 +2,16 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Dictation only. Requested at the moment the user taps the mic, never
+         at launch, and the app is fully usable if it is refused. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- Required from API 30 for SpeechRecognizer.isRecognitionAvailable(). -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
 
     <application
         android:label="@string/app_name"

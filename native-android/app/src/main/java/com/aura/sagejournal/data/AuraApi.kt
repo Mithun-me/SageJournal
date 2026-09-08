@@ -53,8 +53,14 @@ class AuraApi(private val baseUrl: String = BuildConfig.AURA_API_BASE) {
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
     private val jsonType = "application/json; charset=utf-8".toMediaType()
 
+    /** True when a build actually has a backend configured. */
+    val configured: Boolean get() = baseUrl.isNotBlank()
+
     private suspend inline fun <reified T> post(path: String, body: String): T? =
         withContext(Dispatchers.IO) {
+            // A release built without -PauraApiBase has no backend at all;
+            // skip the work rather than constructing an invalid request.
+            if (baseUrl.isBlank()) return@withContext null
             runCatching {
                 val request = Request.Builder()
                     .url(baseUrl.trimEnd('/') + path)

@@ -21,20 +21,38 @@ android {
         versionCode = 1
         versionName = "0.1-gate"
 
-        // Reachable over `adb reverse tcp:3000 tcp:3000` in development;
-        // point at the deployed server for a real build.
-        buildConfigField(
-            "String", "AURA_API_BASE",
-            "\"" + (project.findProperty("auraApiBase") ?: "http://localhost:3000") + "\""
-        )
     }
 
     buildTypes {
+        debug {
+            // Development points at the host over `adb reverse tcp:3000 tcp:3000`.
+            buildConfigField("String", "AURA_API_BASE", "\"http://localhost:3000\"")
+        }
+
         // Measured in release: debug Compose carries composition tracing
         // overhead that would make any frame-time reading meaningless.
         release {
             isMinifyEnabled = false
             signingConfig = signingConfigs.getByName("debug")
+
+            // Supplied per build, never committed:
+            //   ./gradlew assembleRelease -PauraApiBase=https://aura.example.com
+            // or AURA_API_BASE in the environment.
+            val configured = (project.findProperty("auraApiBase") as String?)
+                ?: System.getenv("AURA_API_BASE")
+
+            // A release that quietly points at localhost is a release whose AI
+            // features are dead on every device but this one, with no error to
+            // notice. Better to refuse to build.
+            if (configured != null) {
+                require(configured.startsWith("https://")) {
+                    "auraApiBase must be https:// for a release build (got: $configured)"
+                }
+            }
+            buildConfigField(
+                "String", "AURA_API_BASE",
+                "\"" + (configured ?: "") + "\"",
+            )
         }
     }
 

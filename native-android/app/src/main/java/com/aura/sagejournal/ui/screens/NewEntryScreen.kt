@@ -32,7 +32,11 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,11 +46,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aura.sagejournal.ui.theme.AuraFonts
+import com.aura.sagejournal.data.Dictation
 import com.aura.sagejournal.ui.theme.AuraColors
 import com.aura.sagejournal.ui.theme.AuraShapes
 import com.aura.sagejournal.ui.theme.AuraType
@@ -70,10 +76,29 @@ fun NewEntryScreen(
 ) {
     var title by remember { mutableStateOf("") }
     var body by remember { mutableStateOf("") }
-    var listening by remember { mutableStateOf(true) }
 
-    // What the recogniser would be offering before it is committed.
-    val pendingPhrase = "and then the room went quiet again"
+    val context = LocalContext.current
+    val dictation = remember { Dictation(context) }
+    DisposableEffect(dictation) { onDispose { dictation.release() } }
+
+    // Appends a finished utterance to whatever has been written so far.
+    val commit: (String) -> Unit = { phrase ->
+        body = (body.trim() + " " + phrase.trim()).trim()
+    }
+
+    val micPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted -> if (granted) dictation.start(commit) }
+
+    // Deliberately not started on open: the microphone is requested the moment
+    // the user asks to dictate, never on arriving at a blank page.
+    val toggleDictation: () -> Unit = {
+        when {
+            dictation.listening -> dictation.stop()
+            dictation.hasPermission() -> dictation.start(commit)
+            else -> micPermission.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
 
     Column(
         Modifier
@@ -183,12 +208,21 @@ fun NewEntryScreen(
 
             // Uncommitted speech reads in the live accent, so it is visibly
             // different from text that has actually been saved into the entry.
-            if (listening) {
+            if (dictation.partial.isNotBlank()) {
                 Text(
-                    pendingPhrase,
+                    dictation.partial,
                     color = AuraColors.PrimaryBright,
                     fontSize = AuraType.readingBody,
                     lineHeight = 27.sp,
+                )
+            }
+
+            dictation.error?.let { message ->
+                Text(
+                    message,
+                    color = AuraColors.Warm,
+                    fontSize = AuraType.label,
+                    lineHeight = 19.sp,
                 )
             }
 
@@ -201,11 +235,11 @@ fun NewEntryScreen(
         }
 
         DictationPanel(
-            listening = listening,
-            onToggle = {
-                if (listening) body = (body.trim() + " " + pendingPhrase).trim()
-                listening = !listening
-            },
+            listening = dictation.listening,
+            level = dictation.level,
+            onDevice = dictation.onDevice,
+            available = dictation.available,
+            onToggle = toggleDictation,
         )
     }
 }
@@ -213,7 +247,13 @@ fun NewEntryScreen(
 private fun wordCount(s: String) = s.trim().split(Regex("\\s+")).count { it.isNotEmpty() }
 
 @Composable
-private fun DictationPanel(listening: Boolean, onToggle: () -> Unit) {
+private fun DictationPanel(
+    listening: Boolean,
+    level: Float,
+    onDevice: Boolean,
+    available: Boolean,
+    onToggle: () -> Unit,
+) {
     Column(
         Modifier
             .padding(horizontal = 20.dp)
@@ -235,13 +275,18 @@ private fun DictationPanel(listening: Boolean, onToggle: () -> Unit) {
                     .background(if (listening) AuraColors.Primary else AuraColors.TextMuted)
             )
             Text(
-                if (listening) "  Listening" else "  Paused",
+                when {
+                    !available -> "  Dictation unavailable"
+                    listening && onDevice -> "  Listening · on device"
+                    listening -> "  Listening"
+                    else -> "  Dictate"
+                },
                 color = if (listening) AuraColors.PrimaryBright else AuraColors.TextMuted,
                 fontSize = AuraType.bodySmall,
                 fontWeight = FontWeight.Bold,
             )
             Box(Modifier.weight(1f))
-            Waveform(active = listening)
+            Waveform(active = listening, level = level)
         }
 
         Row(
@@ -260,7 +305,7 @@ private fun DictationPanel(listening: Boolean, onToggle: () -> Unit) {
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    if (listening) "Done dictating" else "Resume",
+                    if (listening) "Done dictating" else "Start dictating",
                     color = AuraColors.OnPrimary,
                     fontSize = AuraType.bodySmall,
                     fontWeight = FontWeight.Bold,
@@ -287,7 +332,7 @@ private fun RoundControl(icon: androidx.compose.ui.graphics.vector.ImageVector) 
 
 /** Nine bars, phase-shifted off one driver rather than nine animations. */
 @Composable
-private fun Waveform(active: Boolean) {
+private fun Waveform(active: Boolean, level: Float) {
     val phase by rememberInfiniteTransition("waveform").animateFloat(
         initialValue = 0f,
         targetValue = (2 * Math.PI).toFloat(),
@@ -301,7 +346,9 @@ private fun Waveform(active: Boolean) {
         horizontalArrangement = Arrangement.spacedBy(3.dp),
     ) {
         repeat(9) { i ->
-            val h = if (active) 8f + 18f * abs(sin(phase + i * 0.7f)) else 4f
+            // Height follows the live level, so silence reads as silence.
+            val amplitude = 4f + 22f * level
+            val h = if (active) 6f + amplitude * abs(sin(phase + i * 0.7f)) else 4f
             Box(
                 Modifier
                     .width(3.dp)
