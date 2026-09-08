@@ -39,6 +39,7 @@ import com.aura.sagejournal.domain.Milestone
 import com.aura.sagejournal.domain.TrendPoint
 import com.aura.sagejournal.ui.components.GlassSurface
 import com.aura.sagejournal.ui.components.TrendChart
+import com.aura.sagejournal.ui.theme.AuraFonts
 import com.aura.sagejournal.ui.theme.AuraColors
 import com.aura.sagejournal.ui.theme.AuraShapes
 import com.aura.sagejournal.ui.theme.AuraType
@@ -196,6 +197,7 @@ fun InsightsScreen(
                         "Pattern noticed",
                         color = AuraColors.TextPrimary,
                         fontSize = AuraType.cardTitle,
+                        fontFamily = AuraFonts.Display,
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
@@ -213,6 +215,7 @@ fun InsightsScreen(
                 "Milestones",
                 color = AuraColors.TextPrimary,
                 fontSize = 22.sp,
+                fontFamily = AuraFonts.Display,
                 fontWeight = FontWeight.Bold,
             )
             milestones.forEach { MilestoneRow(it) }

@@ -38,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aura.sagejournal.domain.JournalEntry
+import com.aura.sagejournal.ui.theme.AuraFonts
 import com.aura.sagejournal.ui.theme.AuraColors
 import com.aura.sagejournal.ui.theme.AuraShapes
 import com.aura.sagejournal.ui.theme.AuraType
@@ -112,6 +113,7 @@ fun EntryDetailScreen(
                 entry.title,
                 color = Color.White,
                 fontSize = 30.sp,
+                fontFamily = AuraFonts.Display,
                 fontWeight = FontWeight.ExtraBold,
                 lineHeight = 37.sp,
             )

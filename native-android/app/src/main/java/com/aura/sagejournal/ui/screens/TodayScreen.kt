@@ -24,6 +24,7 @@ import com.aura.sagejournal.domain.DailyAffirmation
 import com.aura.sagejournal.domain.JournalEntry
 import com.aura.sagejournal.domain.Mood
 import com.aura.sagejournal.ui.components.GlassSurface
+import com.aura.sagejournal.ui.theme.AuraFonts
 import com.aura.sagejournal.ui.theme.AuraColors
 import com.aura.sagejournal.ui.theme.AuraDims
 import com.aura.sagejournal.ui.theme.AuraShapes
@@ -61,6 +62,7 @@ fun TodayScreen(
                 "$greeting,\n$name.",
                 color = Color.White,
                 fontSize = AuraType.display,
+                fontFamily = AuraFonts.Display,
                 fontWeight = AuraType.displayWeight,
                 lineHeight = 38.sp,
             )
@@ -76,6 +78,7 @@ fun TodayScreen(
                     "How is it landing?",
                     color = AuraColors.TextPrimary,
                     fontSize = AuraType.sectionHead,
+                    fontFamily = AuraFonts.Display,
                     fontWeight = AuraType.sectionWeight,
                 )
                 Text(
@@ -104,6 +107,7 @@ fun TodayScreen(
                     "Lately",
                     color = AuraColors.TextPrimary,
                     fontSize = AuraType.sectionHead,
+                    fontFamily = AuraFonts.Display,
                     fontWeight = AuraType.sectionWeight,
                 )
                 Text(
@@ -175,6 +179,7 @@ private fun GroundingCard(affirmation: DailyAffirmation, onWrite: () -> Unit) {
                 affirmation.quote,
                 color = Color.White,
                 fontSize = AuraType.quote,
+                fontFamily = AuraFonts.Display,
                 fontWeight = AuraType.quoteWeight,
                 lineHeight = 28.sp,
             )
@@ -239,6 +244,7 @@ private fun EntryCard(entry: JournalEntry, onClick: () -> Unit) {
                     entry.title,
                     color = Color.White,
                     fontSize = AuraType.cardTitle,
+                    fontFamily = AuraFonts.Display,
                     fontWeight = AuraType.cardTitleWeight,
                     maxLines = 1,
                 )

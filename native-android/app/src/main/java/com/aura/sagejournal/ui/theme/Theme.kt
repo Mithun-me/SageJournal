@@ -70,6 +70,10 @@ object AuraDims {
 /**
  * The redesign's type scale. Sizes are literal from the frames, which is the
  * point: body copy was 11-13px and is now 14-17px.
+ *
+ * Families live in AuraFonts: Plus Jakarta Sans for display sizes, Inter for
+ * everything read at length. Both are bundled — the earlier Manrope and
+ * Be Vietnam Pro pairing was never shipped and fell back to the system family.
  */
 object AuraType {
     val display = 32.sp; val displayWeight = FontWeight.ExtraBold   // greeting, "October"

@@ -34,6 +34,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.aura.sagejournal.ui.theme.AuraFonts
 import com.aura.sagejournal.ui.theme.AuraColors
 import com.aura.sagejournal.ui.theme.AuraDims
 import com.aura.sagejournal.ui.theme.AuraShapes
@@ -73,6 +74,7 @@ fun AuraTopBar(
             "  Aura",
             color = Color.White,
             fontSize = AuraType.brand,
+            fontFamily = AuraFonts.Display,
             fontWeight = AuraType.brandWeight,
         )
 

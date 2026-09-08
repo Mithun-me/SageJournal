@@ -26,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.aura.sagejournal.ui.theme.AuraFonts
 import com.aura.sagejournal.ui.theme.AuraColors
 import com.aura.sagejournal.ui.theme.AuraDims
 import com.aura.sagejournal.ui.theme.AuraShapes
@@ -76,6 +77,7 @@ fun YouScreen(
                 name,
                 color = Color.White,
                 fontSize = AuraType.title,
+                fontFamily = AuraFonts.Display,
                 fontWeight = AuraType.titleWeight,
             )
             Text(syncState, color = AuraColors.TextTertiary, fontSize = AuraType.bodySmall)
@@ -100,6 +102,7 @@ fun YouScreen(
                 "Keep your reflections safe",
                 color = Color.White,
                 fontSize = 20.sp,
+                fontFamily = AuraFonts.Display,
                 fontWeight = FontWeight.Bold,
             )
             Text(

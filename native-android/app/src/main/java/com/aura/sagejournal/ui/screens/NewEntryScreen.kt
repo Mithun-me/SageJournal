@@ -46,6 +46,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.aura.sagejournal.ui.theme.AuraFonts
 import com.aura.sagejournal.ui.theme.AuraColors
 import com.aura.sagejournal.ui.theme.AuraShapes
 import com.aura.sagejournal.ui.theme.AuraType
@@ -138,6 +139,7 @@ fun NewEntryScreen(
                 textStyle = TextStyle(
                     color = Color.White,
                     fontSize = AuraType.title,
+                    fontFamily = AuraFonts.Display,
                     fontWeight = AuraType.titleWeight,
                 ),
                 cursorBrush = SolidColor(AuraColors.Primary),
@@ -148,6 +150,7 @@ fun NewEntryScreen(
                             "Give it a title",
                             color = AuraColors.TextPlaceholder,
                             fontSize = AuraType.title,
+                            fontFamily = AuraFonts.Display,
                             fontWeight = AuraType.titleWeight,
                         )
                     }

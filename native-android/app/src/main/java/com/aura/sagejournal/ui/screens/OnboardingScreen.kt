@@ -29,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.aura.sagejournal.ui.theme.AuraFonts
 import com.aura.sagejournal.ui.theme.AuraColors
 import com.aura.sagejournal.ui.theme.AuraShapes
 import com.aura.sagejournal.ui.theme.AuraType
@@ -98,6 +99,7 @@ fun OnboardingScreen(onDone: () -> Unit) {
                     page.headline,
                     color = Color.White,
                     fontSize = 36.sp,
+                    fontFamily = AuraFonts.Display,
                     fontWeight = FontWeight.ExtraBold,
                     lineHeight = 40.sp,
                     textAlign = TextAlign.Center,

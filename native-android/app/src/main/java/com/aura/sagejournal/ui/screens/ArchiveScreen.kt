@@ -35,6 +35,7 @@ import com.aura.sagejournal.domain.BloomDay
 import com.aura.sagejournal.domain.JournalEntry
 import com.aura.sagejournal.domain.Mood
 import com.aura.sagejournal.ui.components.BloomHeatmap
+import com.aura.sagejournal.ui.theme.AuraFonts
 import com.aura.sagejournal.ui.theme.AuraColors
 import com.aura.sagejournal.ui.theme.AuraShapes
 import com.aura.sagejournal.ui.theme.AuraType
@@ -62,6 +63,7 @@ fun ArchiveScreen(
                 month,
                 color = Color.White,
                 fontSize = AuraType.display,
+                fontFamily = AuraFonts.Display,
                 fontWeight = AuraType.displayWeight,
             )
             Text(
@@ -186,6 +188,7 @@ private fun TimelineEntry(entry: JournalEntry, isLast: Boolean, onClick: () -> U
                 entry.title,
                 color = Color.White,
                 fontSize = AuraType.cardTitle,
+                fontFamily = AuraFonts.Display,
                 fontWeight = AuraType.cardTitleWeight,
             )
             Text(

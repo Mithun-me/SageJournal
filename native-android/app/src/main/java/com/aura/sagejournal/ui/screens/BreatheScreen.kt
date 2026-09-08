@@ -39,6 +39,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aura.sagejournal.ui.components.playChime
+import com.aura.sagejournal.ui.theme.AuraFonts
 import com.aura.sagejournal.ui.theme.AuraColors
 import com.aura.sagejournal.ui.theme.AuraShapes
 import com.aura.sagejournal.ui.theme.AuraType
@@ -156,6 +157,7 @@ fun BreatheScreen(
                     "Breathe",
                     color = Color.White,
                     fontSize = AuraType.display,
+                    fontFamily = AuraFonts.Display,
                     fontWeight = AuraType.displayWeight,
                 )
                 Text(
@@ -232,12 +234,14 @@ fun BreatheScreen(
                     if (running) phase.label else "Ready",
                     color = Color.White,
                     fontSize = 26.sp,
+                    fontFamily = AuraFonts.Display,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
                     if (running) "$secondsLeft" else technique.pattern,
                     color = AuraColors.PrimaryBright,
                     fontSize = 44.sp,
+                    fontFamily = AuraFonts.Display,
                     fontWeight = FontWeight.ExtraBold,
                 )
                 Text(
