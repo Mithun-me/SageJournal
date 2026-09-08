@@ -1,6 +1,7 @@
 package com.aura.sagejournal.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -50,6 +51,7 @@ fun ArchiveScreen(
     entries: List<JournalEntry>,
     query: String,
     onQuery: (String) -> Unit,
+    onOpenEntry: (JournalEntry) -> Unit,
 ) {
     var selected by remember { mutableStateOf<Int?>(null) }
     val selectedDay = selected?.let(days::getOrNull)
@@ -127,7 +129,7 @@ fun ArchiveScreen(
 
         Column {
             entries.forEachIndexed { i, entry ->
-                TimelineEntry(entry, isLast = i == entries.lastIndex)
+                TimelineEntry(entry, isLast = i == entries.lastIndex) { onOpenEntry(entry) }
             }
         }
     }
@@ -146,8 +148,8 @@ private fun LegendDot(mood: Mood) {
 
 /** Entries hang off a hairline rail rather than sitting in cards. */
 @Composable
-private fun TimelineEntry(entry: JournalEntry, isLast: Boolean) {
-    Row(Modifier.fillMaxWidth()) {
+private fun TimelineEntry(entry: JournalEntry, isLast: Boolean, onClick: () -> Unit) {
+    Row(Modifier.fillMaxWidth().clickable(onClick = onClick)) {
         Column(
             Modifier.width(26.dp),
             horizontalAlignment = Alignment.CenterHorizontally,

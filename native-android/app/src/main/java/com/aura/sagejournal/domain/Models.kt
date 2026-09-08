@@ -31,6 +31,11 @@ data class JournalEntry(
     val audioDuration: String? = null,
     val location: String? = null,
     val tags: List<String> = emptyList(),
+    // Populated by the Gemini reflection call, which the native build does not
+    // make yet. Null means "not generated", and the detail screen omits the
+    // section rather than inventing one.
+    val aiReflection: String? = null,
+    val aiAffirmation: String? = null,
 )
 
 data class DailyAffirmation(

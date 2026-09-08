@@ -34,6 +34,7 @@ import com.aura.sagejournal.ui.components.AuraTab
 import com.aura.sagejournal.ui.components.AuraTopBar
 import com.aura.sagejournal.ui.components.LiquidBackground
 import com.aura.sagejournal.ui.screens.ArchiveScreen
+import com.aura.sagejournal.ui.screens.EntryDetailScreen
 import com.aura.sagejournal.ui.screens.InsightsScreen
 import com.aura.sagejournal.ui.screens.NewEntryScreen
 import com.aura.sagejournal.ui.screens.NotPortedYet
@@ -120,11 +121,26 @@ fun AuraApp(refreshHz: Float) {
     var tab by remember { mutableStateOf(AuraTab.Today) }
     var showYou by remember { mutableStateOf(false) }
     var writing by remember { mutableStateOf(false) }
+    // Held by id, not as a snapshot, so favouriting refreshes the screen.
+    var viewingId by remember { mutableStateOf<String?>(null) }
     var archiveQuery by remember { mutableStateOf("") }
 
     val todayMood = today?.mood?.let { m -> runCatching { Mood.valueOf(m) }.getOrNull() }
 
+    val viewing = entries.firstOrNull { it.id == viewingId }
+
     AuraMaterialTheme {
+        if (viewing != null) {
+            EntryDetailScreen(
+                entry = viewing,
+                onBack = { viewingId = null },
+                onToggleFavourite = {
+                    scope.launch { entryStore.toggleFavourite(viewing.id) }
+                },
+            )
+            return@AuraMaterialTheme
+        }
+
         if (writing) {
             NewEntryScreen(
                 dateLabel = "Monday, 8:04 AM",
@@ -224,6 +240,7 @@ fun AuraApp(refreshHz: Float) {
                                 onSelectMood = { scope.launch { entryStore.checkIn(it) } },
                                 onWriteFromQuote = { writing = true },
                                 onViewAll = { tab = AuraTab.Archive },
+                                onOpenEntry = { viewingId = it.id },
                             )
 
                             AuraTab.Archive -> ArchiveScreen(
@@ -238,6 +255,7 @@ fun AuraApp(refreshHz: Float) {
                                 },
                                 query = archiveQuery,
                                 onQuery = { archiveQuery = it },
+                                onOpenEntry = { viewingId = it.id },
                             )
 
                             AuraTab.Breathe -> NotPortedYet(

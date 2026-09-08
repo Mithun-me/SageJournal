@@ -47,6 +47,7 @@ fun TodayScreen(
     onSelectMood: (Mood) -> Unit,
     onWriteFromQuote: () -> Unit,
     onViewAll: () -> Unit,
+    onOpenEntry: (JournalEntry) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(28.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -116,7 +117,7 @@ fun TodayScreen(
                         .padding(horizontal = 6.dp, vertical = 3.dp),
                 )
             }
-            entries.take(2).forEach { EntryCard(it) }
+            entries.take(2).forEach { e -> EntryCard(e) { onOpenEntry(e) } }
         }
     }
 }
@@ -212,8 +213,8 @@ private fun GroundingCard(affirmation: DailyAffirmation, onWrite: () -> Unit) {
 }
 
 @Composable
-private fun EntryCard(entry: JournalEntry) {
-    GlassSurface(Modifier.fillMaxWidth(), shape = AuraShapes.Card) {
+private fun EntryCard(entry: JournalEntry, onClick: () -> Unit) {
+    GlassSurface(Modifier.fillMaxWidth().clickable(onClick = onClick), shape = AuraShapes.Card) {
         Row(
             Modifier.padding(15.dp),
             horizontalArrangement = Arrangement.spacedBy(15.dp),
