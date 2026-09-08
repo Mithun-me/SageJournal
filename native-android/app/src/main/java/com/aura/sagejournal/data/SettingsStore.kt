@@ -18,6 +18,8 @@ data class AuraSettings(
     val dailyReminder: Boolean = true,
     val showHud: Boolean = false,
     val onboarded: Boolean = false,
+    val chimes: Boolean = true,
+    val breathingSessions: Int = 0,
 )
 
 /** Scalar preferences. Entries live in Room; these do not warrant a table. */
@@ -30,6 +32,8 @@ class SettingsStore(context: Context) {
         val reminder = booleanPreferencesKey("daily_reminder")
         val hud = booleanPreferencesKey("show_hud")
         val onboarded = booleanPreferencesKey("onboarded")
+        val chimes = booleanPreferencesKey("chimes")
+        val sessions = intPreferencesKey("breathing_sessions")
     }
 
     val settings: Flow<AuraSettings> = store.data.map { p ->
@@ -39,6 +43,8 @@ class SettingsStore(context: Context) {
             dailyReminder = p[Keys.reminder] ?: true,
             showHud = p[Keys.hud] ?: false,
             onboarded = p[Keys.onboarded] ?: false,
+            chimes = p[Keys.chimes] ?: true,
+            breathingSessions = p[Keys.sessions] ?: 0,
         )
     }
 
@@ -47,4 +53,10 @@ class SettingsStore(context: Context) {
     suspend fun setDailyReminder(v: Boolean) = store.edit { it[Keys.reminder] = v }
     suspend fun setShowHud(v: Boolean) = store.edit { it[Keys.hud] = v }
     suspend fun setOnboarded(v: Boolean) = store.edit { it[Keys.onboarded] = v }
+    suspend fun setChimes(v: Boolean) = store.edit { it[Keys.chimes] = v }
+
+    /** Counted when a session reaches a full cycle; feeds the Quiet Mind milestone. */
+    suspend fun addBreathingSession() = store.edit {
+        it[Keys.sessions] = (it[Keys.sessions] ?: 0) + 1
+    }
 }

@@ -34,10 +34,10 @@ import com.aura.sagejournal.ui.components.AuraTab
 import com.aura.sagejournal.ui.components.AuraTopBar
 import com.aura.sagejournal.ui.components.LiquidBackground
 import com.aura.sagejournal.ui.screens.ArchiveScreen
+import com.aura.sagejournal.ui.screens.BreatheScreen
 import com.aura.sagejournal.ui.screens.EntryDetailScreen
 import com.aura.sagejournal.ui.screens.InsightsScreen
 import com.aura.sagejournal.ui.screens.NewEntryScreen
-import com.aura.sagejournal.ui.screens.NotPortedYet
 import com.aura.sagejournal.ui.screens.OnboardingScreen
 import com.aura.sagejournal.ui.screens.TodayScreen
 import com.aura.sagejournal.ui.screens.YouScreen
@@ -53,7 +53,7 @@ import kotlinx.coroutines.launch
  * "Quiet Mind" stays at zero because breathing sessions are not tracked yet —
  * better an honest empty bar than an invented one.
  */
-private fun milestonesFor(stats: AuraStats): List<Milestone> = listOf(
+private fun milestonesFor(stats: AuraStats, breathingSessions: Int): List<Milestone> = listOf(
     Milestone(
         "First Light", "Wrote your first entry", "🌅",
         achieved = stats.entryCount >= 1,
@@ -65,7 +65,8 @@ private fun milestonesFor(stats: AuraStats): List<Milestone> = listOf(
     ),
     Milestone(
         "Quiet Mind", "10 breathing sessions", "🧘",
-        achieved = false, progress = 0, target = 10,
+        achieved = breathingSessions >= 10,
+        progress = breathingSessions.coerceAtMost(10), target = 10,
     ),
     Milestone(
         "Deep Archive", "50 entries recorded", "📚",
@@ -264,17 +265,22 @@ fun AuraApp(refreshHz: Float) {
                                 onOpenEntry = { viewingId = it.id },
                             )
 
-                            AuraTab.Breathe -> NotPortedYet(
-                                "Breathe", 279,
-                                "Not covered by the redesign, so the existing breathing " +
-                                    "timer design still stands.",
+                            AuraTab.Breathe -> BreatheScreen(
+                                chimesOn = settings.chimes,
+                                onToggleChimes = {
+                                    scope.launch { settingsStore.setChimes(it) }
+                                },
+                                onSessionComplete = {
+                                    scope.launch { settingsStore.addBreathingSession() }
+                                },
+                                sessionsLogged = settings.breathingSessions,
                             )
 
                             AuraTab.Insights -> InsightsScreen(
                                 totalPoints = stats.points,
                                 streak = stats.streakDays,
                                 week = week,
-                                milestones = milestonesFor(stats),
+                                milestones = milestonesFor(stats, settings.breathingSessions),
                                 aiInsight = weeklyInsight(week),
                             )
                         }
