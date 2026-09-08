@@ -26,9 +26,9 @@ import com.aura.sagejournal.data.AuraStats
 import com.aura.sagejournal.data.EntryStore
 import com.aura.sagejournal.data.SettingsStore
 import com.aura.sagejournal.dev.DevHud
+import com.aura.sagejournal.domain.Milestone
 import com.aura.sagejournal.domain.Mood
 import com.aura.sagejournal.domain.SeedData
-import com.aura.sagejournal.domain.TrendsSeed
 import com.aura.sagejournal.ui.components.AuraNavBar
 import com.aura.sagejournal.ui.components.AuraTab
 import com.aura.sagejournal.ui.components.AuraTopBar
@@ -44,6 +44,55 @@ import com.aura.sagejournal.ui.theme.AuraColors
 import com.aura.sagejournal.ui.theme.AuraDims
 import com.aura.sagejournal.ui.theme.AuraMaterialTheme
 import kotlinx.coroutines.launch
+
+/**
+ * Milestone definitions are static, but whether they are earned is not. These
+ * were shipping with two hardcoded as achieved regardless of the journal.
+ * "Quiet Mind" stays at zero because breathing sessions are not tracked yet —
+ * better an honest empty bar than an invented one.
+ */
+private fun milestonesFor(stats: AuraStats): List<Milestone> = listOf(
+    Milestone(
+        "First Light", "Wrote your first entry", "🌅",
+        achieved = stats.entryCount >= 1,
+    ),
+    Milestone(
+        "Seven Days", "A full week unbroken", "🔥",
+        achieved = stats.streakDays >= 7,
+        progress = stats.streakDays.coerceAtMost(7), target = 7,
+    ),
+    Milestone(
+        "Quiet Mind", "10 breathing sessions", "🧘",
+        achieved = false, progress = 0, target = 10,
+    ),
+    Milestone(
+        "Deep Archive", "50 entries recorded", "📚",
+        achieved = stats.entryCount >= 50,
+        progress = stats.entryCount.coerceAtMost(50), target = 50,
+    ),
+)
+
+/**
+ * A summary the data actually supports. The previous copy asserted specific
+ * facts — which days had morning entries — about days that did not exist.
+ */
+private fun weeklyInsight(week: List<com.aura.sagejournal.domain.TrendPoint>): String {
+    val logged = week.filter { it.mood != null }
+    val written = week.sumOf { it.entriesCount }
+    if (logged.isEmpty()) {
+        return "Nothing logged in the last seven days yet. Check in for a few " +
+            "days and patterns will show up here."
+    }
+    val best = logged.maxByOrNull { it.clarityScore }
+    val head = "${logged.size} of 7 days logged, $written " +
+        (if (written == 1) "entry" else "entries") + " written."
+    return if (logged.size < 3) {
+        "$head A few more days and this will be worth reading."
+    } else {
+        "$head Your clearest day was ${best?.name ?: "-"}, checking in as " +
+            "${best?.mood?.label?.lowercase() ?: "-"}."
+    }
+}
 
 /** The heading tracks the real calendar; it was pinned to the seed's "October". */
 private fun currentMonthName(): String =
@@ -66,6 +115,7 @@ fun AuraApp(refreshHz: Float) {
     val bloomDays by entryStore.bloom.collectAsStateWithLifecycle(emptyList())
     val today by entryStore.today.collectAsStateWithLifecycle(null)
     val stats by entryStore.stats.collectAsStateWithLifecycle(AuraStats())
+    val week by entryStore.weekTrend.collectAsStateWithLifecycle(emptyList())
 
     var tab by remember { mutableStateOf(AuraTab.Today) }
     var showYou by remember { mutableStateOf(false) }
@@ -199,10 +249,9 @@ fun AuraApp(refreshHz: Float) {
                             AuraTab.Insights -> InsightsScreen(
                                 totalPoints = stats.points,
                                 streak = stats.streakDays,
-                                week = TrendsSeed.week,
-                                milestones = TrendsSeed.milestones,
-                                aiInsight = "Clarity climbs on days you log before noon — " +
-                                    "Friday and Sunday both started with a morning entry.",
+                                week = week,
+                                milestones = milestonesFor(stats),
+                                aiInsight = weeklyInsight(week),
                             )
                         }
                     }

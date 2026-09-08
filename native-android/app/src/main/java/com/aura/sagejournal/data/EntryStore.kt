@@ -13,6 +13,8 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.aura.sagejournal.domain.BloomDay
 import com.aura.sagejournal.domain.DayState
+import com.aura.sagejournal.domain.TrendPoint
+import com.aura.sagejournal.domain.moodClarityScore
 import com.aura.sagejournal.domain.JournalEntry
 import com.aura.sagejournal.domain.Mood
 import com.aura.sagejournal.domain.SeedData
@@ -201,6 +203,38 @@ class EntryStore(context: Context) {
         )
     }
 
+    /**
+     * The Insights week, derived. Clarity comes from the day's mood via the
+     * existing moodClarityScore map; points use the same rule as the totals.
+     */
+    val weekTrend: Flow<List<TrendPoint>> = combine(
+        dayDao.observeAll(),
+        dao.observeAll(),
+    ) { days, rows ->
+        val byKey = days.associateBy { it.dayKey }
+        val entriesByKey = rows.groupBy { dayKey(it.createdAt) }
+
+        lastSevenDays().map { (key, millis) ->
+            val day = byKey[key]
+            val mood = day?.mood?.let { m -> runCatching { Mood.valueOf(m) }.getOrNull() }
+            val dayEntries = entriesByKey[key].orEmpty()
+            TrendPoint(
+                name = dowFmt.format(Date(millis)),
+                fullDate = fullFmt.format(Date(millis)),
+                mood = mood,
+                clarityScore = mood?.let { moodClarityScore[it] } ?: 0,
+                pointsEarned = dayEntries.size * POINTS_PER_ENTRY +
+                    (day?.checkIns ?: 0) * POINTS_PER_CHECK_IN,
+                entriesCount = dayEntries.size,
+                notes = when {
+                    dayEntries.isNotEmpty() -> dayEntries.first().title
+                    mood != null -> "Checked in as ${mood.label.lowercase()}, nothing written"
+                    else -> "No check-in that day"
+                },
+            )
+        }
+    }
+
     /** A mood tap: records the day's mood and counts the check-in, capped at 4. */
     suspend fun checkIn(mood: Mood) = withContext(Dispatchers.IO) {
         val key = dayKey(System.currentTimeMillis())
@@ -313,4 +347,17 @@ private fun streakLength(activeDays: Set<String>): Int {
         cal.add(Calendar.DAY_OF_YEAR, -1)
     }
     return days
+}
+
+private val dowFmt = SimpleDateFormat("EEE", Locale.getDefault())
+private val fullFmt = SimpleDateFormat("EEE d MMM", Locale.getDefault())
+
+/** The seven days ending today. */
+private fun lastSevenDays(): List<Pair<String, Long>> {
+    val cal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -6) }
+    return (0 until 7).map {
+        val pair = dayKey(cal.timeInMillis) to cal.timeInMillis
+        cal.add(Calendar.DAY_OF_YEAR, 1)
+        pair
+    }
 }

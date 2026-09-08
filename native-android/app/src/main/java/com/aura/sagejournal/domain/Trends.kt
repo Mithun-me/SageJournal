@@ -4,7 +4,7 @@ package com.aura.sagejournal.domain
 data class TrendPoint(
     val name: String,
     val fullDate: String,
-    val mood: Mood,
+    val mood: Mood?,        // null when there was no check-in
     val clarityScore: Int,   // 0..100, left axis
     val pointsEarned: Int,   // 0..120, right axis
     val entriesCount: Int,

@@ -54,7 +54,9 @@ fun InsightsScreen(
     var selected by remember { mutableIntStateOf(4) }  // Friday, as in the web build
     var range by remember { mutableStateOf("7d") }
 
-    val avgClarity = if (week.isEmpty()) 0 else week.sumOf { it.clarityScore } / week.size
+    val logged = week.filter { it.mood != null }
+    val avgClarity =
+        if (logged.isEmpty()) 0 else logged.sumOf { it.clarityScore } / logged.size
     val periodPoints = week.sumOf { it.pointsEarned }
 
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -146,7 +148,7 @@ fun InsightsScreen(
                                 .background(Color.White.copy(alpha = 0.05f))
                                 .border(1.dp, AuraColors.Hairline, RoundedCornerShape(11.dp)),
                             contentAlignment = Alignment.Center,
-                        ) { Text(p.mood.emoji, fontSize = 18.sp) }
+                        ) { Text(p.mood?.emoji ?: "·", fontSize = 18.sp) }
 
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Row(
