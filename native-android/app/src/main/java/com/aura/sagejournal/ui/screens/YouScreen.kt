@@ -142,6 +142,9 @@ fun YouScreen(
             )
         }
 
+        // The 1a frame carries a SETTINGS label here; without it the rows
+        // simply began after the auth block with nothing naming them.
+        SectionLabel("SETTINGS")
         SettingRow("Theme", themeName, onOpenTheme)
         SettingRow("Background motion", motionName, onOpenMotion)
         SwitchRow("Daily reminder", dailyReminder, onDailyReminder)
@@ -159,6 +162,18 @@ fun YouScreen(
             modifier = Modifier.padding(top = 20.dp),
         )
     }
+}
+
+@Composable
+private fun SectionLabel(text: String) {
+    Text(
+        text,
+        color = AuraColors.PrimarySoft,
+        fontSize = AuraType.overline,
+        fontWeight = AuraType.overlineWeight,
+        letterSpacing = 1.sp,
+        modifier = Modifier.padding(top = 8.dp, bottom = 6.dp),
+    )
 }
 
 @Composable

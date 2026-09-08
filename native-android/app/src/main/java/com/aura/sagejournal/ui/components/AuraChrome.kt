@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.AutoGraph
 import androidx.compose.material.icons.filled.CollectionsBookmark
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -33,6 +34,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.unit.dp
 import com.aura.sagejournal.ui.theme.AuraFonts
 import com.aura.sagejournal.ui.theme.AuraColors
@@ -98,17 +103,52 @@ fun AuraTopBar(
             )
         }
 
+        // Avatar with a gear badge. On its own the avatar named the screen but
+        // not what was in it — nothing in the app said "settings" anywhere, so
+        // the entry point was undiscoverable. The badge carries that signal
+        // without splitting it into two controls or leaving the conventional
+        // top-right account slot.
         Box(
             Modifier
-                .padding(start = 10.dp)
-                .size(34.dp)
+                .padding(start = 6.dp)
+                .size(44.dp)   // the visual is 38dp; this is the touch target
                 .clip(AuraShapes.Pill)
-                .background(AuraColors.Primary.copy(alpha = 0.16f))
-                .border(1.dp, AuraColors.Primary.copy(alpha = 0.4f), AuraShapes.Pill)
-                .clickable(onClick = onOpenYou),
+                .clickable(onClick = onOpenYou)
+                .clearAndSetSemantics {
+                    contentDescription = "Profile and settings"
+                    role = Role.Button
+                },
             contentAlignment = Alignment.Center,
         ) {
-            Text(avatarEmoji, fontSize = AuraType.bodySmall)
+            Box(Modifier.size(40.dp)) {
+                Box(
+                    Modifier
+                        .size(34.dp)
+                        .align(Alignment.TopStart)
+                        .clip(AuraShapes.Pill)
+                        .background(AuraColors.Primary.copy(alpha = 0.16f))
+                        .border(1.dp, AuraColors.Primary.copy(alpha = 0.4f), AuraShapes.Pill),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(avatarEmoji, fontSize = AuraType.bodySmall)
+                }
+                Box(
+                    Modifier
+                        .size(19.dp)
+                        .align(Alignment.BottomEnd)
+                        .clip(AuraShapes.Pill)
+                        // Opaque ground so the badge separates from the avatar
+                        // over the shader rather than blending into it.
+                        .background(AuraColors.Background)
+                        .border(1.dp, AuraColors.Primary.copy(alpha = 0.5f), AuraShapes.Pill),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.Filled.Settings, null,
+                        Modifier.size(11.dp), AuraColors.Primary,
+                    )
+                }
+            }
         }
     }
 }
