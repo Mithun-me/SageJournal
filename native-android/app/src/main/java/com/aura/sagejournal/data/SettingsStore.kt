@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -20,6 +21,9 @@ data class AuraSettings(
     val onboarded: Boolean = false,
     val chimes: Boolean = true,
     val breathingSessions: Int = 0,
+    /** Cached daily affirmation, refetched once a calendar day. */
+    val affirmationJson: String? = null,
+    val affirmationDay: String? = null,
 )
 
 /** Scalar preferences. Entries live in Room; these do not warrant a table. */
@@ -34,6 +38,8 @@ class SettingsStore(context: Context) {
         val onboarded = booleanPreferencesKey("onboarded")
         val chimes = booleanPreferencesKey("chimes")
         val sessions = intPreferencesKey("breathing_sessions")
+        val affirmation = stringPreferencesKey("affirmation_json")
+        val affirmationDay = stringPreferencesKey("affirmation_day")
     }
 
     val settings: Flow<AuraSettings> = store.data.map { p ->
@@ -45,6 +51,8 @@ class SettingsStore(context: Context) {
             onboarded = p[Keys.onboarded] ?: false,
             chimes = p[Keys.chimes] ?: true,
             breathingSessions = p[Keys.sessions] ?: 0,
+            affirmationJson = p[Keys.affirmation],
+            affirmationDay = p[Keys.affirmationDay],
         )
     }
 
@@ -56,6 +64,11 @@ class SettingsStore(context: Context) {
     suspend fun setChimes(v: Boolean) = store.edit { it[Keys.chimes] = v }
 
     /** Counted when a session reaches a full cycle; feeds the Quiet Mind milestone. */
+    suspend fun cacheAffirmation(json: String, day: String) = store.edit {
+        it[Keys.affirmation] = json
+        it[Keys.affirmationDay] = day
+    }
+
     suspend fun addBreathingSession() = store.edit {
         it[Keys.sessions] = (it[Keys.sessions] ?: 0) + 1
     }

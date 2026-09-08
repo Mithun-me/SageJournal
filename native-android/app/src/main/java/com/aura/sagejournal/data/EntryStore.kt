@@ -38,6 +38,10 @@ data class EntryRow(
     val isFavorite: Boolean = false,
     val location: String? = null,
     val words: Int = 0,
+    val aiReflection: String? = null,
+    val aiAffirmation: String? = null,
+    // Comma-joined; a handful of short tags does not justify a second table.
+    val aiThemes: String? = null,
 )
 
 @Dao
@@ -99,10 +103,19 @@ interface DayDao {
     suspend fun clear()
 }
 
-@Database(entities = [EntryRow::class, DayRow::class], version = 2, exportSchema = false)
+@Database(entities = [EntryRow::class, DayRow::class], version = 3, exportSchema = false)
 abstract class AuraDatabase : RoomDatabase() {
     abstract fun entries(): EntryDao
     abstract fun days(): DayDao
+}
+
+/** Adds the reflection columns. Nullable, so existing rows need no backfill. */
+val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE entries ADD COLUMN aiReflection TEXT")
+        db.execSQL("ALTER TABLE entries ADD COLUMN aiAffirmation TEXT")
+        db.execSQL("ALTER TABLE entries ADD COLUMN aiThemes TEXT")
+    }
 }
 
 /**
@@ -130,7 +143,7 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
 class EntryStore(context: Context) {
     private val db = Room
         .databaseBuilder(context.applicationContext, AuraDatabase::class.java, "aura.db")
-        .addMigrations(MIGRATION_1_2)
+        .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
         .build()
 
     private val dao = db.entries()
@@ -140,17 +153,45 @@ class EntryStore(context: Context) {
         rows.map { it.toDomain() }
     }
 
-    suspend fun save(title: String, content: String, mood: Mood, location: String? = null) {
+    suspend fun save(
+        title: String,
+        content: String,
+        mood: Mood,
+        location: String? = null,
+    ): String {
         val now = System.currentTimeMillis()
+        val id = "entry-$now"
         dao.upsert(
             EntryRow(
-                id = "entry-$now",
+                id = id,
                 title = title.ifBlank { "Untitled reflection" },
                 content = content,
                 mood = mood.name,
                 createdAt = now,
                 location = location,
                 words = content.trim().split(Regex("\\s+")).count { it.isNotEmpty() },
+            )
+        )
+        return id
+    }
+
+    /**
+     * Attaches a generated reflection to an existing entry. Separate from save
+     * so the entry is durable the instant the user taps Save — the network call
+     * happens after, and losing it costs a reflection rather than the writing.
+     */
+    suspend fun attachReflection(
+        id: String,
+        reflection: String?,
+        affirmation: String?,
+        themes: List<String>,
+    ) = withContext(Dispatchers.IO) {
+        val row = dao.byId(id) ?: return@withContext
+        dao.upsert(
+            row.copy(
+                aiReflection = reflection ?: row.aiReflection,
+                aiAffirmation = affirmation ?: row.aiAffirmation,
+                aiThemes = themes.takeIf { it.isNotEmpty() }?.joinToString(",") ?: row.aiThemes,
             )
         )
     }
@@ -306,6 +347,9 @@ private fun EntryRow.toDomain(): JournalEntry {
         mood = runCatching { Mood.valueOf(mood) }.getOrDefault(Mood.Calm),
         isFavorite = isFavorite,
         location = location,
+        tags = aiThemes?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty(),
+        aiReflection = aiReflection,
+        aiAffirmation = aiAffirmation,
     )
 }
 

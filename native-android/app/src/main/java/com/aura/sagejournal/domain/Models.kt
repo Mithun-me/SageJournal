@@ -38,6 +38,7 @@ data class JournalEntry(
     val aiAffirmation: String? = null,
 )
 
+@kotlinx.serialization.Serializable
 data class DailyAffirmation(
     val quote: String,
     val author: String,

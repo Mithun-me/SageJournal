@@ -101,14 +101,19 @@ fun NewEntryScreen(
                 modifier = Modifier.weight(1f),
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             )
+            // An entry with nothing written in it is not an entry; the title
+            // defaults on save, so a blank body would persist a junk row.
+            val canSave = body.isNotBlank()
             Text(
                 "Save",
-                color = AuraColors.Primary,
+                color = if (canSave) AuraColors.Primary else AuraColors.TextMuted,
                 fontSize = AuraType.bodySmall,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
                     .clip(AuraShapes.Pill)
-                    .clickable { onSave(title, body) }
+                    .then(
+                        if (canSave) Modifier.clickable { onSave(title, body) } else Modifier
+                    )
                     .padding(horizontal = 12.dp, vertical = 10.dp),
             )
         }

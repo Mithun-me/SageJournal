@@ -21,11 +21,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.aura.sagejournal.data.AuraApi
 import com.aura.sagejournal.data.AuraSettings
 import com.aura.sagejournal.data.AuraStats
 import com.aura.sagejournal.data.EntryStore
 import com.aura.sagejournal.data.SettingsStore
 import com.aura.sagejournal.dev.DevHud
+import com.aura.sagejournal.domain.DailyAffirmation
 import com.aura.sagejournal.domain.Milestone
 import com.aura.sagejournal.domain.Mood
 import com.aura.sagejournal.domain.SeedData
@@ -102,6 +104,23 @@ private fun currentMonthName(): String =
     java.text.SimpleDateFormat("MMMM", java.util.Locale.getDefault())
         .format(java.util.Date())
 
+private const val DEFAULT_PROMPT =
+    "What is a small detail you noticed today that brought an unexpected " +
+        "sense of calm?"
+
+private fun dayStamp(): String =
+    java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+        .format(java.util.Date())
+
+private val affirmationJson = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+
+private fun encodeAffirmation(a: DailyAffirmation): String =
+    affirmationJson.encodeToString(DailyAffirmation.serializer(), a)
+
+private fun decodeAffirmation(raw: String): DailyAffirmation? =
+    runCatching { affirmationJson.decodeFromString(DailyAffirmation.serializer(), raw) }
+        .getOrNull()
+
 private val motionLevels = listOf("Gentle" to 0.5f, "Balanced" to 1.0f, "Dynamic" to 1.6f)
 
 @Composable
@@ -109,9 +128,14 @@ fun AuraApp(refreshHz: Float) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val entryStore = remember { EntryStore(context) }
+    val api = remember { AuraApi() }
     val settingsStore = remember { SettingsStore(context) }
 
     LaunchedEffect(Unit) { entryStore.seedIfEmpty() }
+
+    var affirmation by remember { mutableStateOf(SeedData.affirmation) }
+    var composerPrompt by remember { mutableStateOf(DEFAULT_PROMPT) }
+    var serverInsight by remember { mutableStateOf<String?>(null) }
 
     val entries by entryStore.entries.collectAsStateWithLifecycle(emptyList())
     val settings by settingsStore.settings.collectAsStateWithLifecycle(AuraSettings())
@@ -128,6 +152,26 @@ fun AuraApp(refreshHz: Float) {
     var archiveQuery by remember { mutableStateOf("") }
 
     val todayMood = today?.mood?.let { m -> runCatching { Mood.valueOf(m) }.getOrNull() }
+
+    val todayKey = remember { dayStamp() }
+    LaunchedEffect(settings.affirmationDay, settings.affirmationJson) {
+        val cached = settings.affirmationJson
+        if (settings.affirmationDay == todayKey && cached != null) {
+            decodeAffirmation(cached)?.let { affirmation = it }
+            return@LaunchedEffect
+        }
+        val fetched = api.dailyAffirmation("mindfulness, presence and inner stillness")
+        if (fetched?.quote != null) {
+            affirmation = DailyAffirmation(
+                quote = fetched.quote,
+                author = fetched.author ?: "Mindful Wisdom",
+                source = fetched.source,
+                reflection = fetched.reflection ?: affirmation.reflection,
+                theme = fetched.theme ?: "Presence",
+            )
+            settingsStore.cacheAffirmation(encodeAffirmation(affirmation), todayKey)
+        }
+    }
 
     val viewing = entries.firstOrNull { it.id == viewingId }
 
@@ -151,12 +195,19 @@ fun AuraApp(refreshHz: Float) {
         if (writing) {
             NewEntryScreen(
                 dateLabel = "Monday, 8:04 AM",
-                prompt = "What is a small detail you noticed today that brought " +
-                    "an unexpected sense of calm?",
+                prompt = composerPrompt,
                 onSave = { title, body ->
                     scope.launch {
-                        entryStore.save(title, body, todayMood ?: Mood.Calm)
+                        val mood = todayMood ?: Mood.Calm
+                        val id = entryStore.save(title, body, mood)
                         writing = false
+                        // After the write, never before: a failed or slow
+                        // request costs a reflection, not the entry.
+                        api.reflect(title, body, mood.label)?.let { r ->
+                            entryStore.attachReflection(
+                                id, r.reflection, r.affirmation, r.themes
+                            )
+                        }
                     }
                 },
                 onDismiss = { writing = false },
@@ -181,7 +232,14 @@ fun AuraApp(refreshHz: Float) {
                     AuraNavBar(
                         selected = tab,
                         onSelect = { tab = it; showYou = false },
-                        onWrite = { writing = true },
+                        onWrite = {
+                            writing = true
+                            scope.launch {
+                                api.dailyPrompt((todayMood ?: Mood.Calm).label)
+                                    ?.prompt?.takeIf { it.isNotBlank() }
+                                    ?.let { composerPrompt = it }
+                            }
+                        },
                     )
                 },
             ) { inner ->
@@ -239,7 +297,7 @@ fun AuraApp(refreshHz: Float) {
                                 dateLabel = "Monday, 13 October",
                                 greeting = "Good morning",
                                 name = "Seeker",
-                                affirmation = SeedData.affirmation,
+                                affirmation = affirmation,
                                 entries = entries,
                                 selectedMood = todayMood,
                                 checkInsDone = today?.checkIns ?: 0,
@@ -276,13 +334,22 @@ fun AuraApp(refreshHz: Float) {
                                 sessionsLogged = settings.breathingSessions,
                             )
 
-                            AuraTab.Insights -> InsightsScreen(
+                            AuraTab.Insights -> {
+                                LaunchedEffect(stats.entryCount, stats.streakDays) {
+                                    api.insights(
+                                        stats.streakDays, stats.entryCount,
+                                        (todayMood ?: Mood.Calm).label,
+                                    )?.insight?.takeIf { it.isNotBlank() }
+                                        ?.let { serverInsight = it }
+                                }
+                                InsightsScreen(
                                 totalPoints = stats.points,
                                 streak = stats.streakDays,
                                 week = week,
                                 milestones = milestonesFor(stats, settings.breathingSessions),
-                                aiInsight = weeklyInsight(week),
-                            )
+                                aiInsight = serverInsight ?: weeklyInsight(week),
+                                )
+                            }
                         }
                     }
 
