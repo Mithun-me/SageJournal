@@ -38,6 +38,7 @@ import com.aura.sagejournal.ui.screens.EntryDetailScreen
 import com.aura.sagejournal.ui.screens.InsightsScreen
 import com.aura.sagejournal.ui.screens.NewEntryScreen
 import com.aura.sagejournal.ui.screens.NotPortedYet
+import com.aura.sagejournal.ui.screens.OnboardingScreen
 import com.aura.sagejournal.ui.screens.TodayScreen
 import com.aura.sagejournal.ui.screens.YouScreen
 import com.aura.sagejournal.ui.shader.ShaderPalette
@@ -130,6 +131,11 @@ fun AuraApp(refreshHz: Float) {
     val viewing = entries.firstOrNull { it.id == viewingId }
 
     AuraMaterialTheme {
+        if (!settings.onboarded) {
+            OnboardingScreen(onDone = { scope.launch { settingsStore.setOnboarded(true) } })
+            return@AuraMaterialTheme
+        }
+
         if (viewing != null) {
             EntryDetailScreen(
                 entry = viewing,

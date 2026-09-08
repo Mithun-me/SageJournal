@@ -17,6 +17,7 @@ data class AuraSettings(
     val motionIndex: Int = 1,
     val dailyReminder: Boolean = true,
     val showHud: Boolean = false,
+    val onboarded: Boolean = false,
 )
 
 /** Scalar preferences. Entries live in Room; these do not warrant a table. */
@@ -28,6 +29,7 @@ class SettingsStore(context: Context) {
         val motion = intPreferencesKey("motion_index")
         val reminder = booleanPreferencesKey("daily_reminder")
         val hud = booleanPreferencesKey("show_hud")
+        val onboarded = booleanPreferencesKey("onboarded")
     }
 
     val settings: Flow<AuraSettings> = store.data.map { p ->
@@ -36,6 +38,7 @@ class SettingsStore(context: Context) {
             motionIndex = p[Keys.motion] ?: 1,
             dailyReminder = p[Keys.reminder] ?: true,
             showHud = p[Keys.hud] ?: false,
+            onboarded = p[Keys.onboarded] ?: false,
         )
     }
 
@@ -43,4 +46,5 @@ class SettingsStore(context: Context) {
     suspend fun setMotion(v: Int) = store.edit { it[Keys.motion] = v }
     suspend fun setDailyReminder(v: Boolean) = store.edit { it[Keys.reminder] = v }
     suspend fun setShowHud(v: Boolean) = store.edit { it[Keys.hud] = v }
+    suspend fun setOnboarded(v: Boolean) = store.edit { it[Keys.onboarded] = v }
 }
