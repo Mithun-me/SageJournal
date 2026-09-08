@@ -13,9 +13,9 @@ android {
         // Suffixed so this installs alongside the shipping Capacitor build
         // during the port. Drops to com.aura.sagejournal when it replaces it.
         applicationId = "com.aura.sagejournal.lab"
-        // AGSL (RuntimeShader) is API 33+. Production would need a fallback
-        // for 24..32; the gate deliberately tests the intended path only.
-        minSdk = 33
+        // Matches the Capacitor build this replaces. The liquid background
+        // tiers by API level — see LiquidBackground.
+        minSdk = 24
         targetSdk = 36
         versionCode = 1
         versionName = "0.1-gate"
