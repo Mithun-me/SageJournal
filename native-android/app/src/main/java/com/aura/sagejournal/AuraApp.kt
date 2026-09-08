@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.aura.sagejournal.data.AuraSettings
+import com.aura.sagejournal.data.AuraStats
 import com.aura.sagejournal.data.EntryStore
 import com.aura.sagejournal.data.SettingsStore
 import com.aura.sagejournal.dev.DevHud
@@ -64,6 +65,7 @@ fun AuraApp(refreshHz: Float) {
     val settings by settingsStore.settings.collectAsStateWithLifecycle(AuraSettings())
     val bloomDays by entryStore.bloom.collectAsStateWithLifecycle(emptyList())
     val today by entryStore.today.collectAsStateWithLifecycle(null)
+    val stats by entryStore.stats.collectAsStateWithLifecycle(AuraStats())
 
     var tab by remember { mutableStateOf(AuraTab.Today) }
     var showYou by remember { mutableStateOf(false) }
@@ -97,7 +99,7 @@ fun AuraApp(refreshHz: Float) {
                 containerColor = Color.Transparent,
                 topBar = {
                     AuraTopBar(
-                        streakDays = 7,
+                        streakDays = stats.streakDays,
                         avatarEmoji = "🌿",
                         onOpenYou = { showYou = !showYou },
                     )
@@ -133,9 +135,9 @@ fun AuraApp(refreshHz: Float) {
                                 avatarEmoji = "🌿",
                                 name = "Mindful Seeker",
                                 syncState = "On this device only",
-                                streakDays = 7,
-                                entryCount = entries.size,
-                                points = 2450,
+                                streakDays = stats.streakDays,
+                                entryCount = stats.entryCount,
+                                points = stats.points,
                                 themeName = if (settings.deepSea) "Deep Sea" else "Liquid Glass",
                                 motionName = motionLevels[
                                     settings.motionIndex.coerceIn(0, 2)
@@ -195,8 +197,8 @@ fun AuraApp(refreshHz: Float) {
                             )
 
                             AuraTab.Insights -> InsightsScreen(
-                                totalPoints = 2450,
-                                streak = 7,
+                                totalPoints = stats.points,
+                                streak = stats.streakDays,
                                 week = TrendsSeed.week,
                                 milestones = TrendsSeed.milestones,
                                 aiInsight = "Clarity climbs on days you log before noon — " +

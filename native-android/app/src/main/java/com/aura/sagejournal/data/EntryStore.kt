@@ -59,6 +59,21 @@ interface EntryDao {
     suspend fun count(): Int
 }
 
+/**
+ * Derived counters. Scoring matches the web build's rule rather than a new
+ * one, so a migrated journal keeps roughly the same total: App.tsx awarded
+ * +50 on save and +10 on a mood tap.
+ */
+data class AuraStats(
+    val streakDays: Int = 0,
+    val points: Int = 0,
+    val entryCount: Int = 0,
+    val checkIns: Int = 0,
+)
+
+private const val POINTS_PER_ENTRY = 50
+private const val POINTS_PER_CHECK_IN = 10
+
 /** One row per calendar day: the mood you tapped and how many check-ins. */
 @Entity(tableName = "days")
 data class DayRow(
@@ -171,6 +186,21 @@ class EntryStore(context: Context) {
         }
     }
 
+    /** Streak, points and totals, all derived from the two tables. */
+    val stats: Flow<AuraStats> = combine(
+        dayDao.observeAll(),
+        dao.observeAll(),
+    ) { days, rows ->
+        val active = days.filter { it.checkIns > 0 }.map { it.dayKey }.toSet()
+        val checkIns = days.sumOf { it.checkIns }
+        AuraStats(
+            streakDays = streakLength(active),
+            points = rows.size * POINTS_PER_ENTRY + checkIns * POINTS_PER_CHECK_IN,
+            entryCount = rows.size,
+            checkIns = checkIns,
+        )
+    }
+
     /** A mood tap: records the day's mood and counts the check-in, capped at 4. */
     suspend fun checkIn(mood: Mood) = withContext(Dispatchers.IO) {
         val key = dayKey(System.currentTimeMillis())
@@ -264,4 +294,23 @@ private fun windowOf35(): List<String> {
     return (0 until 35).map {
         dayKey(cal.timeInMillis).also { _ -> cal.add(Calendar.DAY_OF_YEAR, 1) }
     }
+}
+
+/**
+ * Consecutive days with at least one check-in, counting back from today.
+ * Missing today does not break the streak until the day is actually over —
+ * otherwise every streak would read zero each morning until you tapped.
+ */
+private fun streakLength(activeDays: Set<String>): Int {
+    val cal = Calendar.getInstance()
+    if (!activeDays.contains(dayKey(cal.timeInMillis))) {
+        cal.add(Calendar.DAY_OF_YEAR, -1)
+        if (!activeDays.contains(dayKey(cal.timeInMillis))) return 0
+    }
+    var days = 0
+    while (activeDays.contains(dayKey(cal.timeInMillis))) {
+        days++
+        cal.add(Calendar.DAY_OF_YEAR, -1)
+    }
+    return days
 }
