@@ -17,6 +17,16 @@
 
 
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+        <!-- Pre-31: the window background is what shows during launch. -->
         <item name="android:background">@drawable/splash</item>
+        <!-- API 31+: the platform draws its own splash and ignores the
+             background above, which left a light grey flash before this dark
+             app appeared. core-splashscreen's v31 variant forwards this to
+             android:windowSplashScreenBackground, so the platform splash
+             centres the launcher icon on the app's own ground. No call to
+             installSplashScreen is needed for this, and postSplashScreenTheme
+             is deliberately not set — BridgeActivity never installs the
+             splash, so nothing would switch the theme back. -->
+        <item name="windowSplashScreenBackground">@color/auraBackground</item>
     </style>
 </resources>

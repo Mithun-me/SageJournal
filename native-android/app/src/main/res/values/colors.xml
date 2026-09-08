@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- AuraColors.Background. Duplicated out of Kotlin because the launch
+         screen is drawn by the system before any Compose code runs. -->
+    <color name="auraBackground">#06070C</color>
+</resources>

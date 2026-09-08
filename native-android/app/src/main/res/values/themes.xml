@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.AuraLab" parent="android:Theme.Material.NoActionBar">
-        <item name="android:windowBackground">#101221</item>
+    <!-- Split into a Base so values-v31 can add the splash attribute without
+         restating the theme. -->
+    <style name="Theme.AuraLab.Base" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/auraBackground</item>
     </style>
+
+    <style name="Theme.AuraLab" parent="Theme.AuraLab.Base" />
 </resources>

@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.AutoGraph
 import androidx.compose.material.icons.filled.CollectionsBookmark
 import androidx.compose.material.icons.filled.Edit
@@ -74,7 +73,7 @@ fun AuraTopBar(
             .padding(horizontal = AuraDims.screenH),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(Icons.Filled.AutoAwesome, null, Modifier.size(24.dp), AuraColors.Primary)
+        AuraMark(Modifier.size(22.dp))
         Text(
             "  Aura",
             color = Color.White,

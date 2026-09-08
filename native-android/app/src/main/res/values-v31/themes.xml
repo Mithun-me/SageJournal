@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- From API 31 the platform draws the launch screen itself, centring
+         android:icon on this colour. It does NOT fall back to
+         windowBackground: with only that set, the launch screen measured pure
+         white on a Pixel 7 even though the theme's background was #06070C.
+         This is the attribute the platform actually reads. -->
+    <style name="Theme.AuraLab" parent="Theme.AuraLab.Base">
+        <item name="android:windowSplashScreenBackground">@color/auraBackground</item>
+    </style>
+</resources>

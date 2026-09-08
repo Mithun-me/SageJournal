@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The launch screen. Was the Capacitor template logo on white; this is the
+     Aura mark on the colour the app actually opens to. A layer-list rather
+     than a full-bleed bitmap because android:background stretches a bitmap to
+     the window, which turns the round mark into an ellipse on a tall screen. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/auraBackground" />
+    <item>
+        <bitmap
+            android:src="@drawable/splash_mark"
+            android:gravity="center" />
+    </item>
+</layer-list>

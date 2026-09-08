@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- AuraColors.Background — the colour the app opens to. Used by the
+         launch screen so there is no flash of a different ground. -->
+    <color name="auraBackground">#06070C</color>
+</resources>
